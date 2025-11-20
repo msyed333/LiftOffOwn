@@ -1,0 +1,372 @@
+/* =========================================================  
+   🧭 LIFTOFF DASHBOARD GLOBAL STYLESHEET  
+   Defines overall layout, card styles, tab system,  
+   and per-section designs for Info, Flights, Points,  
+   Check-In, and Support pages.  
+========================================================= */
+
+/* =========================================================  
+   🌐 PAGE LAYOUT  
+   Controls overall background card, alignment,  
+   and global typography for the dashboard.  
+========================================================= */
+.user-page {
+  min-height: 100vh;
+  background: #ffffffce;              /* soft white semi-transparent background */
+  border-radius: 20px;                /* rounded corners for the main dashboard */
+  color: #333;                        /* default text color */
+  font-family: "Inter", sans-serif;   /* clean modern font */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 1rem;                 /* spacing around the content */
+
+  /* 🔹 Keep background card steady in size */
+  min-height: 800px;                  /* base height of dashboard */
+  max-height: 800px;                  /* prevents resizing */
+  overflow-y: auto;                   /* enables scroll if content exceeds height */
+}
+
+/* =========================================================  
+   🧱 HEADER SECTION  
+   Styles the white LiftOff header card containing  
+   the main title and subtitle.  
+========================================================= */
+.user-header {
+  background: white;
+  padding: 1.8rem;              /* inner spacing around text */
+  border-radius: 18px;          /* rounded but smaller than background card */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  width: 85%;                   /* smaller width than page background */
+  max-width: 900px;             /* limits header expansion */
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #195cec;               /* LiftOff blue text color */
+
+  height: 130px;                /* fixed height for consistency */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;      /* centers vertically */
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* --- subtitle text inside header --- */
+.user-header p {
+  color: #777;                 /* lighter grey subtitle */
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  line-height: 1.2;
+}
+
+/* =========================================================  
+   🧭 TAB NAVIGATION  
+   The “My Info / My Flights / My Points / Check-In / Support” bar.  
+========================================================= */
+.user-tabs {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+/* --- tab button default state --- */
+.tab-btn {
+  background: white;
+  color: #195cec;
+  border: 2px solid #195cec;
+  border-radius: 10px;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+/* --- hover and active tab effects --- */
+.tab-btn:hover {
+  background: #195cec;
+  color: white;
+}
+.tab-btn.active {
+  background: #195cec;
+  color: white;
+}
+
+/* =========================================================  
+   🧍 PROFILE (My Info Tab)  
+   Displays user details like name, email, next flight, etc.  
+========================================================= */
+.user-content {
+  width: 90%;
+  max-width: 600px;
+}
+
+/* profile info card */
+.profile-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+  line-height: 1.4;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* highlighted label text (Name:, Email:, etc.) */
+.highlight {
+  color: #195cec;
+  font-weight: 600;
+}
+
+/* =========================================================  
+   🛫 FLIGHTS TAB  
+   Lists recently completed flights with route, date, and status.  
+========================================================= */
+.section-title {
+  color: #195cec;
+  margin-bottom: 1rem;
+}
+
+.flight-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* individual flight entry */
+.flight-item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flight-route {
+  font-weight: 500;
+}
+.flight-status {
+  color: #195cec;
+  font-weight: 600;
+}
+
+/* =========================================================  
+   💎 POINTS TAB  
+   Shows total reward points, progress bar, and transaction history.  
+========================================================= */
+
+/* --- reward summary text --- */
+.points-text {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* progress bar background */
+.progress-bar {
+  background: #e5e7eb;
+  border-radius: 10px;
+  height: 12px;
+  width: 100%;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+/* inner fill animation */
+.progress-fill {
+  background: #195cec;
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+/* subtext below progress bar */
+.points-subtext {
+  font-size: 0.95rem;
+  color: #555;
+}
+
+/* --- white card container for points section --- */
+.points-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  box-sizing: border-box;
+
+  /* prevents dynamic height changes */
+  height: 400px;
+  overflow-y: auto;
+  transition: none;
+}
+
+/* --- rewards summary section --- */
+.points-summary {
+  text-align: center;
+  margin-bottom: 2rem;
+  background: transparent;
+}
+.points-summary .section-title {
+  color: #195cec;
+  margin-bottom: 0.5rem;
+}
+.points-summary .points-text {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+.points-summary .points-subtext {
+  font-size: 0.95rem;
+  color: #555;
+}
+
+/* --- points history cards --- */
+.section-subtitle {
+  color: #195cec;
+  margin-top: 1.5rem;
+  margin-bottom: 0.8rem;
+  font-size: 1.1rem;
+}
+.points-history {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.points-history-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e6e6e6;
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.points-history-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.points-flight {
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+.points-date,
+.points-note {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* +green earned, -red used */
+.points-change {
+  font-weight: 700;
+  font-size: 1rem;
+}
+.points-change.earned {
+  color: #28a745;
+}
+.points-change.used {
+  color: #e63946;
+}
+  
+
+/* =========================================================  
+   ✈️ CHECK-IN TAB  
+   Allows reservation lookup and check-in before flight.  
+========================================================= */
+.checkin-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* form labels and inputs */
+.checkin-form label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+  color: #195cec;
+  margin-bottom: 0.5rem;
+}
+.checkin-form input {
+  margin-top: 0.3rem;
+  padding: 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  font-size: 1rem;
+}
+
+/* main form button */
+.checkin-form button {
+  background: #195cec;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.8rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+.checkin-form button:hover {
+  background: #0f46b2;
+}
+
+/* error message for invalid code/name */
+.error-msg {
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  padding: 0.75rem;
+  border-radius: 10px;
+  margin-top: 1rem;
+}
+
+/* reservation result card */
+.checkin-result {
+  background: #f9f9ff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* dynamic status colors */
+.status-success {
+  color: #059669;
+}
+.status-open {
+  color: #2563eb;
+}
+.status-closed {
+  color: #6b7280;
+}
+
+/* check-in button when available */
+.checkin-now {
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+/* check-in title & subtext */
+.checkin-title {
+  color: #000; /* black title */
+  font-size: 1.8rem;
+  margin-bottom: 0.3rem;
+  text-align: center;
+}
+.checkin-instruction {
+  color: #555;
+  font-size: 0.95rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  line-height: 1.4;
+}

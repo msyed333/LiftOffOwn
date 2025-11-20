@@ -1,0 +1,196 @@
+/* =========================================================
+   💬 SUPPORT PAGE STYLES (Support.css)
+   Wider version for FAQ and Support Ticket layout
+========================================================= */
+
+/* === MAIN CONTAINER === */
+.user-page.support {
+  min-height: 100vh;
+  background: #ffffffce;             /* translucent white background */
+  border-radius: 20px;
+  color: #333;
+  font-family: "Inter", sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 3rem;                /* more padding for spaciousness */
+
+  /* 🔹 Wider background card */
+  max-width: 1600px;                 /* wider than before (was 1400px) */
+  margin: 2rem auto;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* === HEADER === */
+.section-title {
+  color: #195cec;
+  font-size: 2rem;                   /* slightly larger */
+  text-align: center;
+  margin-bottom: 0.8rem;
+}
+
+.support-text {
+  color: #666;
+  font-size: 1.05rem;
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+/* =========================================================
+   🧭 TWO-COLUMN SUPPORT LAYOUT
+   FAQ section (left) | Submit Ticket form (right)
+========================================================= */
+.support-layout {
+  display: flex;
+  justify-content: space-between;    /* spread the two sections out */
+  align-items: flex-start;
+  gap: 3rem;
+  max-width: 1400px;                 /* inner content wider (was 1200px) */
+  flex-wrap: nowrap;
+}
+
+/* === LEFT SIDE — FAQ SECTION === */
+.faq-section {
+  flex: 1 1 60%;                     /* take a bit more space */
+  background: #fff;
+  border-radius: 18px;
+  padding: 2.5rem 3rem;              /* more interior spacing */
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  min-height: 600px;                 /* ensures even card height */
+}
+
+.faq-title {
+  color: #195cec;
+  font-size: 1.7rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;
+}
+
+.faq-item {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.3rem 1.6rem;
+  cursor: pointer;
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.faq-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.faq-question {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #195cec;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.faq-icon {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #195cec;
+}
+
+.faq-answer {
+  color: #444;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-top: 0.8rem;
+}
+
+.faq-item.open {
+  border-color: #195cec;
+  box-shadow: 0 4px 12px rgba(25, 92, 236, 0.1);
+}
+
+/* === RIGHT SIDE — SUPPORT FORM === */
+.support-form-container {
+  flex: 1 1 40%;
+  background: #fff;
+  border-radius: 18px;
+  padding: 2.5rem 3rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  min-height: 600px;                 /* match FAQ height for balance */
+}
+
+/* === FORM SUBTEXT (light grey below header) === */
+.form-subtext {
+  color: #777;            /* light grey */
+  font-size: 0.95rem;
+  text-align: center;
+  margin-top: -0.4rem;    /* brings it closer to header */
+  margin-bottom: 1rem;    /* adds spacing before inputs */
+}
+
+
+.support-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.form-title {
+  color: #195cec;
+  font-weight: 700;
+  font-size: 1.5rem;
+  text-align: center;
+  margin-bottom: 0;  
+}
+
+.support-form input,
+.support-form textarea {
+  width: 100%;
+  padding: 1rem 1.3rem;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.support-form input:focus,
+.support-form textarea:focus {
+  border-color: #195cec;
+  outline: none;
+  box-shadow: 0 0 6px rgba(25, 92, 236, 0.25);
+}
+
+.support-form button {
+  background: #195cec;
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.1s ease;
+}
+.support-form button:hover {
+  background: #0f46b2;
+  transform: translateY(-2px);
+}
+
+/* === RESPONSIVE DESIGN === */
+@media (max-width: 1050px) {
+  .support-layout {
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .faq-section,
+  .support-form-container {
+    width: 100%;
+    max-width: 800px;
+    min-height: auto;
+  }
+}
