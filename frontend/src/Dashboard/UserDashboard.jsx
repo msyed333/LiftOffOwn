@@ -10,9 +10,11 @@
 // ==========================================================
 
 // Import React hooks for state management and performance
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import axios from "axios";
 // Import the associated CSS stylesheet for styling
 import "./UserDashboard.css";
+
 
 // ==========================================================
 // 🧭 MAIN DASHBOARD COMPONENT
@@ -145,43 +147,103 @@ function ProfileInfo() {
 // airports) and dates. Currently uses hardcoded example data,
 // but should be connected to a backend database in production.
 // ==========================================================
-function FlightHistory() {
-  // Array of example/dummy flight records
-  // Each flight object contains:
-  // - id: unique identifier
-  // - from: departure airport (city name and airport code)
-  // - to: arrival airport (city name and airport code)
-  // - date: flight date in YYYY-MM-DD format
-  const flights = [
-    { id: 1, from: "New York (JFK)", to: "Los Angeles (LAX)", date: "2025-10-05" },
-    { id: 2, from: "Boston (BOS)", to: "Chicago (ORD)", date: "2025-09-22" },
-  ];
+// function FlightHistory() {
+//   // Array of example/dummy flight records
+//   // Each flight object contains:
+//   // - id: unique identifier
+//   // - from: departure airport (city name and airport code)
+//   // - to: arrival airport (city name and airport code)
+//   // - date: flight date in YYYY-MM-DD format
+//   const flights = [
+//     { id: 1, from: "New York (JFK)", to: "Los Angeles (LAX)", date: "2025-10-05" },
+//     { id: 2, from: "Boston (BOS)", to: "Chicago (ORD)", date: "2025-09-22" },
+//   ];
 
-  return (
-    <div>
-      {/* Section title for the flights list */}
-      <h2 className="section-title">Recent Flights</h2>
+//   return (
+//     <div>
+//       {/* Section title for the flights list */}
+//       <h2 className="section-title">Recent Flights</h2>
       
-      {/* Container for the flight list with styling from CSS */}
-      <ul className="flight-list">
-        {/* Map over each flight and render a list item for it */}
-        {flights.map((f) => (
-          <li key={f.id} className="flight-item">
-            {/* Left side: flight details (route and date) */}
-            <div>
-              {/* Flight route displayed in "FROM → TO" format */}
-              <p className="flight-route">{f.from} → {f.to}</p>
-              {/* Flight date shown below the route */}
-              <p className="flight-date">{f.date}</p>
-            </div>
-            {/* Right side: status badge showing flight is completed */}
-            <span className="flight-status">Completed</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+//       {/* Container for the flight list with styling from CSS */}
+//       <ul className="flight-list">
+//         {/* Map over each flight and render a list item for it */}
+//         {flights.map((f) => (
+//           <li key={f.id} className="flight-item">
+//             {/* Left side: flight details (route and date) */}
+//             <div>
+//               {/* Flight route displayed in "FROM → TO" format */}
+//               <p className="flight-route">{f.from} → {f.to}</p>
+//               {/* Flight date shown below the route */}
+//               <p className="flight-date">{f.date}</p>
+//             </div>
+//             {/* Right side: status badge showing flight is completed */}
+//             <span className="flight-status">Completed</span>
+//           </li>
+//         ))}
+//       </ul>
+//     </div>
+//   );
+// }
+
+function FlightHistory() {
+  const user = JSON.parse(localStorage.getItem("liftoffUser"));
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+
+    axios.get(`http://localhost:9000/myBookings/${user._id}`)
+      .then(res => {
+        setBookings(res.data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Error loading bookings:", err);
+        setLoading(false);
+      });
+  }, [user]);
+
+  if (!user) return <p>Please log in to see your flights.</p>;
+
+  if (loading) return <p>Loading your flights...</p>;
+
+  if (bookings.length === 0) {
+    return <p>You haven’t booked any flights yet.</p>;
+  }
+
+    return (
+      <div>
+        <h2 className="section-title">My Booked Flights</h2>
+
+        <ul className="flight-list">
+          {bookings.map((b) => (
+            <li key={b._id} className="flight-item">
+              <div>
+                <p className="flight-route">
+                  {b.from} → {b.to}
+                </p>
+
+                <p className="flight-date">
+                  {b.airline} — Departs at {b.depart} on {b.date}
+                </p>
+
+                <p>Confirmation Code: <strong>{b.confirmationCode}</strong></p>
+
+                <p>Boooked on: <strong>{b.bookingDate}</strong></p>
+                <p>Price: <strong>{b.price} per person</strong></p>
+                <p>Number of Passengers: <strong>{b.passengerCount} per person</strong></p>
+                <p>Total Price: <strong>${(Number(b.price) * b.passengerCount).toFixed(2)}</strong></p>
+                <p>Points Earnes: <strong>{(Number(b.price) * b.passengerCount).toFixed(1)*10}</strong></p>
+              </div>
+
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
 
 // ==========================================================
 // 💎 MY POINTS TAB / POINTS REWARDS COMPONENT
@@ -191,89 +253,162 @@ function FlightHistory() {
 // of all point transactions (both earned from flights and
 // redeemed for upgrades or other benefits).
 // ==========================================================
-function Points() {
-  // User's current point balance
-  const points = 8200;
+// function Points() {
+//   // User's current point balance
+//   const points = 8200;
   
-  // Points needed to unlock the next reward/benefit
-  const nextReward = 10000;
+//   // Points needed to unlock the next reward/benefit
+//   const nextReward = 10000;
   
-  // Calculate the percentage of progress toward next reward
-  // Used for the visual progress bar (0-100%)
-  const percentage = (points / nextReward) * 100;
+//   // Calculate the percentage of progress toward next reward
+//   // Used for the visual progress bar (0-100%)
+//   const percentage = (points / nextReward) * 100;
 
-  // Array of transaction history showing all point changes
-  // Each entry has:
-  // - id: unique identifier
-  // - flight: which flight the points were associated with
-  // - date: when the transaction occurred
-  // - change: amount (+earned or -redeemed)
-  // - note: description of why points changed
-  const history = [
-    { id: 1, flight: "JFK → LAX", date: "2025-10-05", change: "+10,000", note: "Earned from flight" },
-    { id: 2, flight: "LAX → ORD", date: "2025-09-15", change: "-2,000", note: "Redeemed for upgrade" },
-    { id: 3, flight: "BOS → CHI", date: "2025-08-20", change: "+5,000", note: "Earned from flight" },
-  ];
+//   // Array of transaction history showing all point changes
+//   // Each entry has:
+//   // - id: unique identifier
+//   // - flight: which flight the points were associated with
+//   // - date: when the transaction occurred
+//   // - change: amount (+earned or -redeemed)
+//   // - note: description of why points changed
+//   const history = [
+//     { id: 1, flight: "JFK → LAX", date: "2025-10-05", change: "+10,000", note: "Earned from flight" },
+//     { id: 2, flight: "LAX → ORD", date: "2025-09-15", change: "-2,000", note: "Redeemed for upgrade" },
+//     { id: 3, flight: "BOS → CHI", date: "2025-08-20", change: "+5,000", note: "Earned from flight" },
+//   ];
+
+//   return (
+//     <div>
+//       {/* --- POINTS SUMMARY SECTION --- */}
+//       {/* Shows total points and progress toward next reward */}
+//       <div className="points-summary">
+//         {/* Section heading */}
+//         <h2 className="section-title">Your Rewards</h2>
+        
+//         {/* Display total points with highlighted styling */}
+//         <p className="points-text">Total Points: <span className="highlight">{points}</span></p>
+
+//         {/* --- PROGRESS BAR --- */}
+//         {/* Visual representation of progress toward next reward */}
+//         {/* The inner div fills from left to right based on percentage */}
+//         <div className="progress-bar">
+//           {/* Inner bar that fills proportionally to user's progress */}
+//           <div className="progress-fill" style={{ width: `${percentage}%` }}></div>
+//         </div>
+
+//         {/* Show how many points are needed until the next reward */}
+//         <p className="points-subtext">
+//           {nextReward - points} points to your next flight upgrade!
+//         </p>
+//       </div>
+
+//       {/* --- POINTS HISTORY SECTION --- */}
+//       {/* Lists all transactions that have affected the user's points */}
+//       <h3 className="section-subtitle">Point History</h3>
+//       <div className="points-history">
+//         {/* Map over history array and create a card for each transaction */}
+//         {history.map((item) => (
+//           <div key={item.id} className="points-history-card">
+//             {/* Left side: transaction details */}
+//             <div>
+//               {/* Flight associated with this transaction */}
+//               <p className="points-flight">{item.flight}</p>
+//               {/* Date of the transaction */}
+//               <p className="points-date">{item.date}</p>
+//               {/* Description of why points changed */}
+//               <p className="points-note">{item.note}</p>
+//             </div>
+
+//             {/* Right side: point change amount */}
+//             {/* Dynamically apply CSS class based on whether points were earned or used */}
+//             <span
+//               className={`points-change ${
+//                 // Add "earned" class (green) if change starts with "+", else "used" (red)
+//                 item.change.startsWith("+") ? "earned" : "used"
+//               }`}
+//             >
+//               {/* Display the amount of points gained or lost */}
+//               {item.change}
+//             </span>
+//           </div>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// }
+
+function Points() {
+  const user = JSON.parse(localStorage.getItem("liftoffUser"));
+  const [points, setPoints] = useState(0);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const nextReward = 10000;
+
+  useEffect(() => {
+    if (!user) return;
+
+    axios.get(`http://localhost:9000/user/points/${user._id}`)
+      .then(res => {
+        setPoints(res.data.totalPoints);
+        setHistory(res.data.history);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Error loading points:", err);
+        setLoading(false);
+      });
+  }, [user]);
+
+  if (!user) return <p>Please log in to view your points.</p>;
+
+  if (loading) return <p>Loading your points...</p>;
+
+  const percentage = Math.min((points / nextReward) * 100, 100);
 
   return (
     <div>
-      {/* --- POINTS SUMMARY SECTION --- */}
-      {/* Shows total points and progress toward next reward */}
       <div className="points-summary">
-        {/* Section heading */}
         <h2 className="section-title">Your Rewards</h2>
-        
-        {/* Display total points with highlighted styling */}
-        <p className="points-text">Total Points: <span className="highlight">{points}</span></p>
 
-        {/* --- PROGRESS BAR --- */}
-        {/* Visual representation of progress toward next reward */}
-        {/* The inner div fills from left to right based on percentage */}
+        <p className="points-text">
+          Total Points: <span className="highlight">{points}</span>
+        </p>
+
         <div className="progress-bar">
-          {/* Inner bar that fills proportionally to user's progress */}
           <div className="progress-fill" style={{ width: `${percentage}%` }}></div>
         </div>
 
-        {/* Show how many points are needed until the next reward */}
         <p className="points-subtext">
-          {nextReward - points} points to your next flight upgrade!
+          {Math.max(nextReward - points, 0)} points to your next flight upgrade!
         </p>
       </div>
 
-      {/* --- POINTS HISTORY SECTION --- */}
-      {/* Lists all transactions that have affected the user's points */}
       <h3 className="section-subtitle">Point History</h3>
-      <div className="points-history">
-        {/* Map over history array and create a card for each transaction */}
-        {history.map((item) => (
-          <div key={item.id} className="points-history-card">
-            {/* Left side: transaction details */}
-            <div>
-              {/* Flight associated with this transaction */}
-              <p className="points-flight">{item.flight}</p>
-              {/* Date of the transaction */}
-              <p className="points-date">{item.date}</p>
-              {/* Description of why points changed */}
-              <p className="points-note">{item.note}</p>
-            </div>
 
-            {/* Right side: point change amount */}
-            {/* Dynamically apply CSS class based on whether points were earned or used */}
-            <span
-              className={`points-change ${
-                // Add "earned" class (green) if change starts with "+", else "used" (red)
-                item.change.startsWith("+") ? "earned" : "used"
-              }`}
-            >
-              {/* Display the amount of points gained or lost */}
-              {item.change}
-            </span>
-          </div>
-        ))}
-      </div>
+      {history.length === 0 ? (
+        <p>No points activity yet.</p>
+      ) : (
+        <div className="points-history">
+          {history.map((item, index) => (
+            <div key={index} className="points-history-card">
+              <div>
+                <p className="points-flight">{item.flight}</p>
+                <p className="points-date">{item.date}</p>
+                <p className="points-note">{item.note}</p>
+              </div>
+
+              <span className="points-change earned">
+                {item.change}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
 
 // ==========================================================
 // ✈️ CHECK-IN TAB / CHECK-IN COMPONENT

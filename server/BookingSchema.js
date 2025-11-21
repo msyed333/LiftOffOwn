@@ -1,33 +1,46 @@
 const mongoose = require("mongoose");
 
-const BookingSchema = new mongoose.Schema({
-  // Who booked the flight
-  userId: { type: String, required: true },
+const bookingSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null
+  },
 
-  // Passenger information
-  passengerCount: Number,
-  passengers: [
-    {
-      fullName: String,
-      age: Number
-    }
-  ],
+  guestId: {
+    type: String,
+    default: null
+  },
 
-  seatingPreference: String,
-  email: String, // receipt email
+  name: String,
+  email: String,
 
-  // Flight details
-  flightId: String,
+  flightId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Flight"
+  },
+
   airline: String,
   from: String,
   to: String,
   depart: String,
   arrive: String,
-  price: String,
+  date: String,
 
-  // System-generated values
-  confirmationCode: String,
-  bookingDate: String
+  passengerCount: Number,
+  passengers: Array,
+  seatingPreference: String,
+  price: Number,
+
+  confirmationCode: {
+    type: String,
+    unique: true
+  },
+
+  bookingDate: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-module.exports = mongoose.model("Booking", BookingSchema);
+module.exports = mongoose.model("Booking", bookingSchema);

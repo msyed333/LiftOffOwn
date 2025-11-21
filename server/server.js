@@ -4,6 +4,8 @@ const cors = require('cors');
 const app = express();
 const User = require('./UserSchema')
 const Flight = require("./FlightSchema");
+const Booking = require("./BookingSchema");
+
 
 app.use(express.json());
 app.use(cors())
@@ -78,3 +80,115 @@ app.get("/flights/:id", async (req, res) => {
 });
 
 
+app.get("/myBookings/:userId", async (req, res) => {
+  try {
+    const bookings = await Booking.find({ userId: req.params.userId });
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch bookings" });
+  }
+});
+
+
+
+
+function generateGuestId() {
+  return "GUEST-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+}
+
+function generateConfirmationCode() {
+  return "LIFT-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// ✅ Booking endpoint
+app.post("/bookFlight", async (req, res) => {
+  try {
+    const {
+      userId,
+      name,
+      email,
+      flightId,
+      airline,
+      from,
+      to,
+      depart,
+      arrive,
+      date,
+      passengerCount,
+      passengers,
+      seatingPreference,
+      price,
+    } = req.body;
+
+    const bookingData = {
+      name,
+      email,
+      flightId,
+      airline,
+      from,
+      to,
+      depart,
+      arrive,
+      date,
+      passengerCount,
+      passengers,
+      seatingPreference,
+      price,
+      confirmationCode: generateConfirmationCode()
+    };
+
+    // ✅ If user is logged in → save userId
+    if (userId) {
+      bookingData.userId = userId;
+    } 
+    // ✅ If guest → generate guestId
+    else {
+      bookingData.guestId = generateGuestId();
+    }
+
+    const booking = new Booking(bookingData);
+    await booking.save();
+
+    res.status(201).json({
+      message: "Booking successful ✅",
+      booking
+    });
+
+  } catch (error) {
+    console.error("Booking Error:", error);
+    res.status(500).json({ error: "Booking failed" });
+  }
+});
+
+app.get("/user/points/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const bookings = await Booking.find({ userId });
+
+    let totalPoints = 0;
+    let history = [];
+
+    bookings.forEach(booking => {
+      const earned = Math.round(booking.price * 10);  // ✅ 10 points per dollar
+
+      totalPoints += earned;
+
+      history.push({
+        flight: `${booking.from} → ${booking.to}`,
+        date: booking.date,
+        change: `+${earned}`,
+        note: "Earned from flight"
+      });
+    });
+
+    res.json({
+      totalPoints,
+      history
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch points" });
+  }
+});
