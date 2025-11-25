@@ -15,8 +15,6 @@ export default function Homepage() {
   const [sortBy, setSortBy] = useState("priceAsc");
   const navigate = useNavigate();
 
-  // ---- Dummy flight data ----
-  //const flights = useMemo(() => flightsData, []);
 
   //get data from mongodb
   const [flights, setFlights] = useState([]);
@@ -43,11 +41,50 @@ export default function Homepage() {
   window.location.reload(); // refresh navbar instantly
   };
 
+  // ---- Clear all search/filter fields ----
+  const handleClearSearch = () => {
+    setFrom("");
+    setTo("");
+    setDate("");
+    setPassengers(1);
+    setAirline("All");
+    setNonstopOnly(false);
+    setSortBy("priceAsc");
+  };
+
+
+  // ---- Helper function to map airport codes to city names ----
+  const airportCityMap = {
+    JFK: "New York",
+    LGA: "New York",
+    EWR: "Newark",
+    LHR: "London",
+    SFO: "San Francisco",
+    MIA: "Miami",
+    LAX: "Los Angeles",
+    ALB: "Albany",
+    DFW: "Dallas",
+    DEN: "Denver",
+    CDG: "Paris",
+    MCO: "Orlando"
+  };
 
   const results = useMemo(() => {
     let out = flights.filter(f => {
-      const matchFrom = from ? f.from.toLowerCase().includes(from.trim().toLowerCase()) : true;
-      const matchTo = to ? f.to.toLowerCase().includes(to.trim().toLowerCase()) : true;
+      // For FROM: check both airport code and city name
+      const searchFromLower = from.trim().toLowerCase();
+      const matchFrom = from ? (
+        f.from.toLowerCase().includes(searchFromLower) || 
+        airportCityMap[f.from]?.toLowerCase().includes(searchFromLower)
+      ) : true;
+
+      // For TO: check both airport code and city name
+      const searchToLower = to.trim().toLowerCase();
+      const matchTo = to ? (
+        f.to.toLowerCase().includes(searchToLower) || 
+        airportCityMap[f.to]?.toLowerCase().includes(searchToLower)
+      ) : true;
+
       const matchDate = date ? f.date === date : true;
       const matchAirline = airline === "All" ? true : f.airline === airline;
       const matchStops = nonstopOnly ? f.stops === 0 : true;
@@ -183,7 +220,7 @@ export default function Homepage() {
             </div>
 
 
-            <button style={styles.button} type="submit">Clear Search</button>
+            <button style={styles.button} type="button" onClick={handleClearSearch}>Clear Search</button>
           </form>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

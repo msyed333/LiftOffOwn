@@ -1,78 +1,37 @@
-// ==========================================================
-//  PAYMENT PAGE COMPONENT
-//  Handles the complete booking and payment flow for flights
-//
-//  This component allows users to:
-//  1. View flight summary details
-//  2. Specify number of passengers and seating preferences
-//  3. Enter passenger information (name and age)
-//  4. Enter payment details (card information)
-//  5. Process the booking and create a reservation
-// ==========================================================
-
-// Import React hooks for state management and side effects
 import React, { useState, useEffect } from "react";
-// Import routing utilities to navigate and access passed state
 import { useLocation, useNavigate } from "react-router-dom";
-// Import axios for making HTTP requests to the backend
 import axios from "axios";
 
-// ==========================================================
-// PAYMENT PAGE COMPONENT (Main Functional Component)
-// ==========================================================
 const PaymentPage = () => {
-  // ========== ROUTING HOOKS ==========
-  // Get the location object from React Router to access state passed from previous page
   const { state } = useLocation();
-  // Extract flightId from the passed state (the flight the user selected)
   const { flightId } = state || {};
-  // Get navigate function to redirect user after booking is complete
   const navigate = useNavigate();
 
-  // ========== STATE FOR FLIGHT DATA ==========
-  // Store the flight object retrieved from the database
   const [flight, setFlight] = useState(null);
 
-  // ========== STATE FOR BOOKING DETAILS ==========
-  // Track how many passengers are booking on this flight (1-10)
   const [passengerCount, setPassengerCount] = useState(1);
-  // Store user's seating preference: "together" or "separate"
   const [seatingPreference, setSeatingPreference] = useState("together");
-  // Get logged-in user from localStorage (or null for guest checkout)
   const user = JSON.parse(localStorage.getItem("liftoffUser"));
-  // Extract user ID if user is logged in (null for guests)
-  const userId = user ? user._id : null; // allow guest
+  const userId = user ? user._id : null;
 
-  // ========== STATE FOR PASSENGER INFORMATION ==========
-  // Array of passenger objects, each with fullName and age fields
-  // Initialized with one empty passenger object
   const [passengerList, setPassengerList] = useState([
     { fullName: "", age: "" }
   ]);
 
-  // ========== STATE FOR PAYMENT INFORMATION ==========
-  // Email address where booking confirmation will be sent
   const [email, setEmail] = useState("");
-  // Cardholder's name (from credit/debit card)
   const [cardName, setCardName] = useState("");
-  // 16-digit credit/debit card number
   const [cardNumber, setCardNumber] = useState("");
-  // Card expiration date (MM/YY format)
   const [expiry, setExpiry] = useState("");
-  // 3-4 digit security code on back of card
   const [cvv, setCvv] = useState("");
+  const [savedCard, setSavedCard] = useState(null);
+  const [useSavedCard, setUseSavedCard] = useState(false);
+  const [prevCardValues, setPrevCardValues] = useState(null);
+  const [savePaymentChecked, setSavePaymentChecked] = useState(false);
 
-  // ========== STATE FOR UI/UX FEEDBACK ==========
-  // Track if payment is being processed (shows loading spinner)
   const [isLoading, setIsLoading] = useState(false);
-  // Track if booking was successfully confirmed
   const [isConfirmed, setIsConfirmed] = useState(false);
-  // Store error or success messages to display to user
   const [message, setMessage] = useState("");
 
-  // ========== STATE FOR FIELD-LEVEL ERROR MESSAGES ==========
-  // Track individual validation errors for each payment field
-  // This allows showing specific error messages below each input
   const [errors, setErrors] = useState({
     email: "",
     cardName: "",
@@ -81,82 +40,56 @@ const PaymentPage = () => {
     cvv: "",
   });
 
-  // ==========================================================
-  // EFFECT HOOK: FETCH FLIGHT DETAILS
-  // Runs when component mounts or flightId changes
-  // Retrieves the selected flight's information from MongoDB
-  // ==========================================================
   useEffect(() => {
-    // Early return if no flightId was passed (shouldn't happen in normal flow)
     if (!flightId) return;
 
-    // Make GET request to fetch flight by ID from backend
     axios.get(`http://localhost:9000/flights/${flightId}`)
-      // On success, store the flight data in state
       .then(res => setFlight(res.data))
-      // On error, log to console for debugging
       .catch(err => console.error("Failed to fetch flight:", err));
-  }, [flightId]); // Re-run if flightId changes
+  }, [flightId]);
 
-  // ==========================================================
-  // EARLY RETURN: LOADING STATE
-  // If flight hasn't been fetched yet, show loading message
-  // This must come AFTER all hooks (React rule)
-  // ==========================================================
+  // Fetch saved card for logged-in user (if any)
+  useEffect(() => {
+    if (!userId) return;
+
+    axios.get(`http://localhost:9000/userCard/${userId}`)
+      .then(res => {
+        if (res.data) {
+          setSavedCard(res.data);
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch saved card:", err);
+      });
+  }, [userId]);
+
   if (!flight) {
     return <div style={{ padding: 20 }}>Loading flight information...</div>;
   }
 
-  // ==========================================================
-  // PRICE CALCULATION
-  // Calculate the total cost based on number of passengers
-  // ==========================================================
-  // Base price per passenger from the flight object
   const basePrice = flight.price;
-  // Calculate 3% tax on total fare (base price × passenger count)
   const tax = basePrice * passengerCount * 0.03;
-  // Calculate grand total: (base price × passengers) + tax, rounded to 2 decimals
   const total = ((basePrice * passengerCount) + tax).toFixed(2);
 
-  // ==========================================================
-  // HANDLER: UPDATE PASSENGER COUNT
-  // When user changes the passenger count dropdown
-  // This also dynamically adds/removes passenger input fields
-  // ==========================================================
   const handlePassengerCountChange = (e) => {
-    // Parse the selected value as an integer (1-10)
     const count = parseInt(e.target.value);
-    // Update the passenger count state
     setPassengerCount(count);
 
-    // Copy the current passenger list array
     let updated = [...passengerList];
     
-    // If new count is more than current list, add empty passenger objects
     if (count > updated.length) {
-      // Loop from current length to new count
       for (let i = updated.length; i < count; i++) {
-        // Add new passenger with empty name and age
         updated.push({ fullName: "", age: "" });
       }
     } else {
-      // If new count is less, trim the array to only include needed passengers
       updated = updated.slice(0, count);
     }
-    // Update the passenger list state with new array
     setPassengerList(updated);
   };
 
-  // ==========================================================
-  // HANDLER: FORM SUBMISSION
-  // Called when user clicks "Complete Purchase" button
-  // Validates all required fields before processing payment
-  // ==========================================================
   const handleSubmit = (e) => {
-    // Prevent default form submission behavior (page reload)
     e.preventDefault();
 
-    // Initialize errors object to track all validation errors
     let newErrors = {
       email: "",
       cardName: "",
@@ -165,28 +98,24 @@ const PaymentPage = () => {
       cvv: "",
     };
 
-    // VALIDATION: Email field
     if (!email) {
       newErrors.email = "Email is required.";
     } else if (!email.includes("@")) {
       newErrors.email = "Please enter a valid email address.";
     }
 
-    // VALIDATION: Cardholder name field
     if (!cardName) {
       newErrors.cardName = "Cardholder name is required.";
     } else if (cardName.trim().length < 2) {
       newErrors.cardName = "Please enter a valid cardholder name.";
     }
 
-    // VALIDATION: Card number field
     if (!cardNumber) {
       newErrors.cardNumber = "Card number is required.";
     } else if (cardNumber.length !== 16) {
       newErrors.cardNumber = "Card number must be 16 digits.";
     }
 
-    // VALIDATION: Expiration date field
     if (!expiry) {
       newErrors.expiry = "Expiration date is required.";
     } else if (!expiry.includes("/")) {
@@ -198,87 +127,92 @@ const PaymentPage = () => {
       }
     }
 
-    // VALIDATION: CVV field
     if (!cvv) {
       newErrors.cvv = "CVV is required.";
     } else if (cvv.length < 3 || cvv.length > 4) {
       newErrors.cvv = "CVV must be 3 or 4 digits.";
     }
 
-    // Update the errors state with all validation results
     setErrors(newErrors);
 
-    // VALIDATION: Check if all payment fields are filled and valid
     if (!email || !cardName || !cardNumber || !expiry || !cvv) {
       setMessage("⚠️ Please fill all fields.");
       return;
     }
 
-    // VALIDATION: Check if any payment field has errors
     if (Object.values(newErrors).some(error => error !== "")) {
       setMessage("⚠️ Please fix the errors above.");
       return;
     }
 
-    // VALIDATION: Check if all passenger information is complete
     for (let p of passengerList) {
-      // If any passenger is missing name or age, show error
       if (!p.fullName || !p.age) {
         setMessage("⚠️ Complete all passenger details.");
         return;
       }
     }
 
-    // All validations passed - start loading state
     setIsLoading(true);
 
-    // Simulate payment processing delay (2 seconds)
     setTimeout(() => {
-      // After 2 seconds, stop loading and save booking to database
       setIsLoading(false);
       saveBookingToDB();
     }, 2000);
   };
 
-  // ==========================================================
-  // FUNCTION: PROCESS BOOKING
-  // Simulates booking completion by showing success message
-  // No server call is made - purely frontend confirmation
-  // ==========================================================
-
   const saveBookingToDB = async () => {
-  // Get logged-in user (if exists)
-  const user = JSON.parse(localStorage.getItem("liftoffUser"));
+    const user = JSON.parse(localStorage.getItem("liftoffUser"));
 
-  const bookingData = {
-    userId: user ? user._id : null,   // ✅ null => guest
-    name: passengerList[0].fullName, // primary passenger name
-    email: email,
+    const bookingData = {
+      userId: user ? user._id : null,
+      name: passengerList[0].fullName,
+      email: email,
 
-    flightId: flight._id,
-    airline: flight.airline,
-    from: flight.from,
-    to: flight.to,
-    depart: flight.depart,
-    arrive: flight.arrive,
-    date: flight.date,
+      flightId: flight._id,
+      airline: flight.airline,
+      from: flight.from,
+      to: flight.to,
+      depart: flight.depart,
+      arrive: flight.arrive,
+      date: flight.date,
 
-    passengerCount,
-    passengers: passengerList,
-    seatingPreference,
-    price: total,
-  };
+      passengerCount,
+      passengers: passengerList,
+      seatingPreference,
+      price: total,
+    };
 
-  try {
-    const response = await axios.post(
-      "http://localhost:9000/bookFlight",
-      bookingData
-    );
+    try {
+      const response = await axios.post(
+        "http://localhost:9000/bookFlight",
+        bookingData
+      );
 
-    console.log("✅ Booking saved:", response.data.booking);
+      console.log("✅ Booking saved:", response.data.booking);
 
-    // Mark UI as confirmed
-    setIsConfirmed(true);
+      setIsConfirmed(true);
+
+      // After booking succeeds, if user opted to save payment and they don't already have a saved card,
+      // persist card details (excluding CVV) to the database and update local state.
+      if (user && user._id && savePaymentChecked && !savedCard) {
+        try {
+          const cardPayload = {
+            userId: user._id,
+            cardNumber,
+            cardHolder: cardName,
+            expiry,
+          };
+
+          const saveRes = await axios.post("http://localhost:9000/saveCard", cardPayload);
+          if (saveRes.data && saveRes.data.card) {
+            setSavedCard(saveRes.data.card);
+            // clear the checkbox after saving
+            setSavePaymentChecked(false);
+          }
+        } catch (err) {
+          console.error("Failed to save card:", err);
+        }
+      }
 
     } catch (error) {
       console.error("❌ Booking failed:", error);
@@ -288,52 +222,32 @@ const PaymentPage = () => {
 
 
 
-  // ==========================================================
-  // FUNCTION: GENERATE CONFIRMATION CODE
-  // Creates a unique booking confirmation code
-  // Format: "LIFT-" followed by 6 random alphanumeric characters
-  // ==========================================================
   function generateCode() {
-    // "LIFT-" + random string (takes chars 2-8 from Math.random().toString())
     return "LIFT-" + Math.random().toString(36).substring(2, 8).toUpperCase();
   }
   
-  // ==========================================================
-  // MAIN RETURN / JSX RENDERING
-  // ==========================================================
   return (
     <div style={styles.page}>
       <main style={styles.hero}>
         <div style={styles.heroInner}>
           <h2 style={styles.title}>Complete Your Booking</h2>
 
-          {/* ========== CONDITIONAL RENDERING ========== */}
-          {/* Show different UI based on the current state of the form */}
-
-          {/* CASE 1: LOADING STATE - Show spinner while processing payment */}
           {isLoading ? (
             <div style={styles.loadingCard}>
               <div style={styles.spinner}></div>
               <h2 style={{ marginTop: 20 }}>Processing your payment...</h2>
             </div>
-          ) : /* CASE 2: CONFIRMED STATE - Show success message after payment */
-          isConfirmed ? (
+          ) : isConfirmed ? (
             <div style={styles.confirmCard}>
               <h1 style={{ color: "#28a745", marginBottom: 10 }}>Payment Successful!</h1>
               <p>A confirmation email has been sent to <strong>{email}</strong>.</p>
             </div>
-          ) : /* CASE 3: NORMAL STATE - Show the full booking form */
-          (
+          ) : (
             <>
-              {/* ========================= */}
-              {/* SECTION 1: FLIGHT SUMMARY */}
-              {/* ========================= */}
-              {/* Displays flight details so user can confirm they're booking the right flight */}
               <div style={styles.sectionCard}>
                 <h3 style={styles.sectionTitle}>Flight Summary</h3>
 
                 <div style={{ lineHeight: "1.6", fontSize: "15px", marginLeft: 5 }}>
-                  {/* AIRLINE AND FLIGHT NUMBER */}
                   <p>
                     <strong>Airline:</strong> {flight?.airline}  
                     <br />
@@ -342,14 +256,11 @@ const PaymentPage = () => {
 
                   <hr style={styles.separator} />
 
-                  {/* ROUTE INFORMATION */}
-                  {/* Shows departure and arrival cities with airport codes */}
                   <p>
                     <strong>Route:</strong> {flight?.fromFull} ({flight?.from}) →{" "}
                     {flight?.toFull} ({flight?.to})
                   </p>
 
-                  {/* DEPARTURE AND ARRIVAL TIMES */}
                   <p>
                     <strong>Departure Date:</strong> {flight?.date}
                     <br />
@@ -358,7 +269,6 @@ const PaymentPage = () => {
                     <strong>Arrival:</strong> {flight?.arrive}
                   </p>
 
-                  {/* FLIGHT DURATION AND STOPS */}
                   <p>
                     <strong>Duration:</strong> {flight?.durationMin} minutes
                     <br />
@@ -366,11 +276,9 @@ const PaymentPage = () => {
                     {flight?.stops === 0 ? "Nonstop" : `${flight?.stops} stop(s)`}
                   </p>
 
-                  {/* STOPOVER DETAILS - Only shown if flight has stops */}
                   {flight?.stops > 0 && (
                     <div style={{ marginTop: 10 }}>
                       <strong>Stopover Details:</strong>
-                      {/* Map through each stop and display information */}
                       {flight.stopInfo.map((stop, index) => (
                         <p key={index} style={{ marginLeft: 15 }}>
                           Stop {index + 1}: {stop.fullName} ({stop.code}) —{" "}
@@ -382,7 +290,6 @@ const PaymentPage = () => {
 
                   <hr style={styles.separator} />
 
-                  {/* PRICING BREAKDOWN */}
                   <p>
                     <strong>Base Fare:</strong> ${basePrice} × {passengerCount}
                     <br />
@@ -393,15 +300,10 @@ const PaymentPage = () => {
                 </div>
               </div>
 
-              {/* ========================= */}
-              {/* SECTION 2: BOOKING DETAILS */}
-              {/* ========================= */}
-              {/* User selects number of passengers and seating preference */}
               <div style={styles.sectionCard}>
                 <h3 style={styles.sectionTitle}>Booking Details</h3>
 
                 <div style={styles.twoColumn}>
-                  {/* PASSENGER COUNT DROPDOWN */}
                   <div>
                     <label>Number of Passengers</label>
                     <select
@@ -409,7 +311,6 @@ const PaymentPage = () => {
                       onChange={handlePassengerCountChange}
                       style={styles.input}
                     >
-                      {/* Create options for 1-10 passengers */}
                       {Array.from({ length: 10 }, (_, i) => (
                         <option key={i + 1} value={i + 1}>
                           {i + 1}
@@ -418,11 +319,9 @@ const PaymentPage = () => {
                     </select>
                   </div>
 
-                  {/* SEATING PREFERENCE RADIO BUTTONS */}
                   <div>
                     <label>Seating Preference</label>
                     <div style={{ display: "flex", gap: "20px", marginTop: "6px" }}>
-                      {/* Option 1: Sit Together - all passengers in same seating area */}
                       <label>
                         <input
                           type="radio"
@@ -433,7 +332,6 @@ const PaymentPage = () => {
                         {" "}Sit Together
                       </label>
 
-                      {/* Option 2: Sit Separate - passengers can sit in different areas */}
                       <label>
                         <input
                           type="radio"
@@ -448,20 +346,14 @@ const PaymentPage = () => {
                 </div>
               </div>
 
-              {/* ========================= */}
-              {/* SECTION 3: PASSENGER INFORMATION */}
-              {/* ========================= */}
-              {/* User enters details for each passenger (name and age) */}
               <div style={styles.sectionCard}>
                 <h3 style={styles.sectionTitle}>Passenger Information</h3>
 
-                {/* Loop through each passenger and create input fields */}
                 {passengerList.map((p, index) => (
                   <div key={index} style={styles.passengerCard}>
                     <h4>Passenger {index + 1}</h4>
 
                     <div style={styles.twoColumn}>
-                      {/* FULL NAME INPUT */}
                       <div>
                         <label>Full Name</label>
                         <input
@@ -469,17 +361,13 @@ const PaymentPage = () => {
                           style={styles.input}
                           value={p.fullName}
                           onChange={(e) => {
-                            // Create copy of passenger list
                             const updated = [...passengerList];
-                            // Update this passenger's full name
                             updated[index].fullName = e.target.value;
-                            // Update state with modified list
                             setPassengerList(updated);
                           }}
                         />
                       </div>
 
-                      {/* AGE INPUT */}
                       <div>
                         <label>Age</label>
                         <input
@@ -487,11 +375,8 @@ const PaymentPage = () => {
                           style={styles.input}
                           value={p.age}
                           onChange={(e) => {
-                            // Create copy of passenger list
                             const updated = [...passengerList];
-                            // Update this passenger's age
                             updated[index].age = e.target.value;
-                            // Update state with modified list
                             setPassengerList(updated);
                           }}
                         />
@@ -501,14 +386,51 @@ const PaymentPage = () => {
                 ))}
               </div>
 
-              {/* ========================= */}
-              {/* SECTION 4: PAYMENT INFORMATION */}
-              {/* ========================= */}
-              {/* User enters credit/debit card details and email */}
               <div style={styles.sectionCard}>
                 <h3 style={styles.sectionTitle}>Payment Information</h3>
 
-                {/* EMAIL FOR RECEIPT */}
+                {userId && savedCard && (
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <input
+                        type="checkbox"
+                        checked={useSavedCard}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+
+                          if (checked) {
+                            // keep a copy of current values to restore when unchecked
+                            setPrevCardValues({ cardName, cardNumber, expiry, cvv });
+                            setCardName(savedCard.cardHolder || "");
+                            setCardNumber(savedCard.cardNumber || "");
+                            setExpiry(savedCard.expiry || "");
+                            setCvv("");
+                            setUseSavedCard(true);
+                          } else {
+                            // restore previous values or clear
+                            if (prevCardValues) {
+                              setCardName(prevCardValues.cardName || "");
+                              setCardNumber(prevCardValues.cardNumber || "");
+                              setExpiry(prevCardValues.expiry || "");
+                              setCvv(prevCardValues.cvv || "");
+                            } else {
+                              setCardName("");
+                              setCardNumber("");
+                              setExpiry("");
+                              setCvv("");
+                            }
+                            setUseSavedCard(false);
+                          }
+                        }}
+                      />
+                      <span>Use saved payment info for the payment details</span>
+                      <small style={{ marginLeft: 12, color: "#6c757d" }}>
+                        (card ending in {savedCard.cardNumber ? savedCard.cardNumber.slice(-4) : "—"})
+                      </small>
+                    </label>
+                  </div>
+                )}
+
                 <div style={styles.formGroup}>
                   <label>Email for Receipt</label>
                   <input
@@ -518,19 +440,16 @@ const PaymentPage = () => {
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
-                      // Clear error when user starts typing
                       if (errors.email) {
                         setErrors({ ...errors, email: "" });
                       }
                     }}
                   />
-                  {/* Show error message below input if validation fails */}
                   {errors.email && (
                     <p style={styles.errorMessage}>{errors.email}</p>
                   )}
                 </div>
 
-                {/* NAME ON CARD */}
                 <div style={styles.formGroup}>
                   <label>Name on Card</label>
                   <input
@@ -540,19 +459,17 @@ const PaymentPage = () => {
                     value={cardName}
                     onChange={(e) => {
                       setCardName(e.target.value);
-                      // Clear error when user starts typing
                       if (errors.cardName) {
                         setErrors({ ...errors, cardName: "" });
                       }
                     }}
+                    disabled={useSavedCard}
                   />
-                  {/* Show error message below input if validation fails */}
                   {errors.cardName && (
                     <p style={styles.errorMessage}>{errors.cardName}</p>
                   )}
                 </div>
 
-                {/* CARD NUMBER (max 16 digits) */}
                 <div style={styles.formGroup}>
                   <label>Card Number</label>
                   <input
@@ -562,24 +479,20 @@ const PaymentPage = () => {
                     maxLength="16"
                     value={cardNumber}
                     onChange={(e) => {
-                      // Only allow numbers
                       const value = e.target.value.replace(/\D/g, "");
                       setCardNumber(value);
-                      // Clear error when user starts typing
                       if (errors.cardNumber) {
                         setErrors({ ...errors, cardNumber: "" });
                       }
                     }}
+                    disabled={useSavedCard}
                   />
-                  {/* Show error message below input if validation fails */}
                   {errors.cardNumber && (
                     <p style={styles.errorMessage}>{errors.cardNumber}</p>
                   )}
                 </div>
 
-                {/* EXPIRATION DATE AND CVV */}
                 <div style={styles.twoColumn}>
-                  {/* EXPIRATION DATE (MM/YY format, max 5 chars) */}
                   <div>
                     <label>Expiration</label>
                     <input
@@ -589,27 +502,23 @@ const PaymentPage = () => {
                       maxLength="5"
                       value={expiry}
                       onChange={(e) => {
-                        // Allow only numbers and one forward slash
                         let value = e.target.value.replace(/\D/g, "");
                         
-                        // Auto-format: MM/YY
                         if (value.length >= 2) {
                           value = value.slice(0, 2) + "/" + value.slice(2, 4);
                         }
                         setExpiry(value);
-                        // Clear error when user starts typing
                         if (errors.expiry) {
                           setErrors({ ...errors, expiry: "" });
                         }
                       }}
+                      disabled={useSavedCard}
                     />
-                    {/* Show error message below input if validation fails */}
                     {errors.expiry && (
                       <p style={styles.errorMessage}>{errors.expiry}</p>
                     )}
                   </div>
 
-                  {/* CVV - SECURITY CODE (max 4 digits, hidden input) */}
                   <div>
                     <label>CVV</label>
                     <input
@@ -619,42 +528,45 @@ const PaymentPage = () => {
                       maxLength="4"
                       value={cvv}
                       onChange={(e) => {
-                        // Only allow numbers
                         const value = e.target.value.replace(/\D/g, "");
                         setCvv(value);
-                        // Clear error when user starts typing
                         if (errors.cvv) {
                           setErrors({ ...errors, cvv: "" });
                         }
                       }}
                     />
-                    {/* Show error message below input if validation fails */}
                     {errors.cvv && (
                       <p style={styles.errorMessage}>{errors.cvv}</p>
                     )}
                   </div>
                 </div>
+                {/* Save payment details checkbox (show when user logged in but no saved card) */}
+                {userId && !savedCard && (
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <input
+                        type="checkbox"
+                        checked={savePaymentChecked}
+                        onChange={(e) => setSavePaymentChecked(e.target.checked)}
+                      />
+                      <span style={{ fontSize: 14 }}>Save payment details</span>
+                    </label>
+                  </div>
+                )}
               </div>
 
-              {/* ========================= */}
-              {/* SECTION 5: BOOKING SUMMARY & SUBMIT */}
-              {/* ========================= */}
-              {/* Final review of booking details with purchase button */}
               <div style={styles.sectionCard}>
                 <h3 style={styles.sectionTitle}>Summary</h3>
 
-                {/* LIST OF ALL PASSENGERS */}
                 <h4>Passengers</h4>
                 {passengerList.map((p, i) => (
                   <p key={i} style={{ marginLeft: 15 }}>
-                    {/* Show passenger name or placeholder, and age */}
                     {p.fullName || `Passenger ${i + 1}`} - Age {p.age || "—"}
                   </p>
                 ))}
 
                 <hr style={styles.separator} />
 
-                {/* COST BREAKDOWN */}
                 <h4>Cost Breakdown</h4>
                 <p style={{ marginLeft: 15 }}>
                   Base Fare: ${basePrice} × {passengerCount}  
@@ -664,12 +576,10 @@ const PaymentPage = () => {
                   <strong>Total: ${total}</strong>
                 </p>
 
-                {/* SUBMIT BUTTON - Processes the booking */}
                 <button style={styles.submitButton} onClick={handleSubmit}>
                   Complete Purchase
                 </button>
 
-                {/* ERROR OR SUCCESS MESSAGE */}
                 {message && (
                   <p style={{ marginTop: 10, textAlign: "center" }}>{message}</p>
                 )}

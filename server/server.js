@@ -5,6 +5,9 @@ const app = express();
 const User = require('./UserSchema')
 const Flight = require("./FlightSchema");
 const Booking = require("./BookingSchema");
+const PaymentMethod = require("./PaymentMethod");
+const Card = require("./CardSchema");
+
 
 
 app.use(express.json());
@@ -192,3 +195,44 @@ app.get("/user/points/:userId", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch points" });
   }
 });
+
+app.post("/saveCard", async (req, res) => {
+  try {
+    const { userId, cardNumber, cardHolder, expiry } = req.body;
+
+    const card = await Card.findOneAndUpdate(
+      { userId },  
+      { 
+        cardNumber, 
+        cardHolder, 
+        expiry,
+        updatedAt: new Date()
+      },
+      { new: true, upsert: true }
+    );
+
+    res.json({ success: true, card });
+  } catch (err) {
+    console.error("Card Save Error:", err);
+    res.status(500).json({ error: "Failed to save card" });
+  }
+});
+
+
+
+app.get("/userCard/:userId", async (req, res) => {
+  const card = await Card.findOne({ userId: req.params.userId });
+  res.json(card);
+});
+
+
+app.delete("/deleteCard/:userId", async (req, res) => {
+  try {
+    await Card.deleteOne({ userId: req.params.userId });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete card" });
+  }
+});
+
