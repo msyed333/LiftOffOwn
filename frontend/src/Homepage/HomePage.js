@@ -195,7 +195,7 @@ export default function Homepage() {
               <label style={styles.label}>
                 Airline
                 <select
-                  style={styles.input}
+                  style={styles.select}
                   value={airline}
                   onChange={(e) => setAirline(e.target.value)}
                 >
@@ -206,7 +206,7 @@ export default function Homepage() {
               <label style={styles.label}>
                 Sort by
                 <select
-                  style={styles.input}
+                  style={styles.select}
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                 >
@@ -219,6 +219,19 @@ export default function Homepage() {
               </label>
             </div>
 
+            <div style={styles.row}>
+              <label style={styles.label}>
+                Nonstop only
+                <input
+                  type="checkbox"
+                  style={{ width: 18, height: 18 }}
+                  checked={nonstopOnly}
+                  onChange={(e) => setNonstopOnly(e.target.checked)}
+                />
+              </label>
+
+              <div />
+            </div>
 
             <button style={styles.button} type="button" onClick={handleClearSearch}>Clear Search</button>
           </form>
@@ -227,7 +240,7 @@ export default function Homepage() {
             <div style={{ color: "#666", }}>{results.length} flights found</div>
           </div>
 
-          <div style={{ display: "grid", gap: 12 }}>
+          <div style={styles.resultsGrid}>
             {results.map(f => (
               <article key={f.id} style={styles.resultCard}>
                 <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr 1fr auto", alignItems: "center", gap: 12 }}>
@@ -298,17 +311,19 @@ function airportName(code) { return code; }
 
 // ---- Styles ----
 const styles = {
-  page: { fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif", color: "#111" },
-  container: { maxWidth: 1000, margin: "0 auto", padding: "0 18px" },
+  page: { fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif", color: "#111", width: "100vw", overflow: "hidden" },
+  container: { maxWidth: 1000, margin: "0 auto", padding: "0 18px", width: "100%", boxSizing: "border-box" },
   header: {
   background: "#faf9f9ff",
   border: "1px solid #e9eef5",
   borderRadius: "20px",          // 💡 curves all corners (top + bottom)
   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",  // adds soft depth
   margin: "12px auto",           // centers and adds breathing room
-  width: "95%",                  // optional: gives space from window edges
+  maxWidth: 1000,                  // optional: gives space from window edges
   padding: "4px 0",              // keeps internal layout nice
-  },    
+  width: "100%",                 // full width to avoid shrinking
+  boxSizing: "border-box",       // include padding/border in width
+  },
   headerFlex: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 10px" },
   brand: { fontWeight: 800, fontSize: 28, padding: "16px 0" },
   nav: { display: "flex", gap: 18 },
@@ -322,26 +337,31 @@ const styles = {
   background: "#f6f7fbce",
   padding: "28px 0 40px",
   borderRadius: "20px",                     // 💡 curved edges all around
-  width: "95%",                             // match header width
+  maxWidth: 1000,                             // match header width
   margin: "20px auto",                      // center it with spacing
-  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)" // subtle depth shadow
+  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)", // subtle depth shadow
+  width: "100%",                             // full width to avoid shrinking
+  boxSizing: "border-box",                   // include padding/border in width
+  overflow: "hidden",                         // lock width, prevent expansion
     },
-  heroInner: { display: "grid", gap: 16 },
+  heroInner: { display: "grid", gap: 16, width: "100%", boxSizing: "border-box" },
   title: { margin: 0, fontSize: 24 },
 
   //color of filtering section
-  card: { background: "#ffffffff", border: "1px solid #e6e6e6", borderRadius: 12, padding: 16, display: "grid", gap: 12, boxShadow: "0 1px 2px rgba(0,0,0,.04)" },
-  row: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
-  label: { display: "grid", gap: 6, fontSize: 12, color: "#444" },
-  input: { height: 38, padding: "0 10px", borderRadius: 8, border: "1px solid #cfd7df", fontSize: 14, background: "#fff" },
-  button: { height: 40, border: "1px solid #2f6feb", background: "#2f6feb", color: "white", borderRadius: 8, fontWeight: 600, cursor: "pointer" },
+  card: { background: "#ffffffff", border: "1px solid #e6e6e6", borderRadius: 12, padding: 16, display: "grid", gap: 12, boxShadow: "0 1px 2px rgba(0,0,0,.04)", width: "100%", boxSizing: "border-box", overflow: "hidden" },
+  row: { display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 12, overflow: "hidden" },
+  label: { display: "grid", gap: 6, fontSize: 12, color: "#444", minWidth: 0, overflow: "hidden" },
+  input: { height: 38, padding: "0 10px", borderRadius: 8, border: "1px solid #cfd7df", fontSize: 14, background: "#fff", width: "100%", boxSizing: "border-box", minWidth: 0 },
+  select: { height: 38, padding: "0 10px", borderRadius: 8, border: "1px solid #cfd7df", fontSize: 14, background: "#fff", width: "100%", boxSizing: "border-box", minWidth: 0 },
+  button: { height: 40, border: "1px solid #2f6feb", background: "#2f6feb", color: "white", borderRadius: 8, fontWeight: 600, cursor: "pointer", width: "100%", boxSizing: "border-box" },
 
   //color of the flight data card
-  resultCard: { background: "#ffffffff", border: "1px solid #e7ebf0", borderRadius: 12, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,.04)" },
+  resultCard: { background: "#ffffffff", border: "1px solid #e7ebf0", borderRadius: 12, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,.04)", overflow: "hidden" },
   time: { fontSize: 16, fontWeight: 700 },
   price: { fontSize: 18, fontWeight: 800 },
   badge: { fontSize: 12, background: "#eef3ff", color: "#2f6feb", padding: "2px 6px", borderRadius: 6, marginLeft: 6 },
   amenity: { fontSize: 12, color: "#4b5563", background: "#f3f4f6", padding: "4px 8px", borderRadius: 6 },
   selectBtn: { marginLeft: "auto", border: "1px solid #2f6feb", background: "#2f6feb", color: "#fff", borderRadius: 8, height: 34, padding: "0 12px", cursor: "pointer" },
-  footer: { borderTop: "1px solid #eee", padding: "16px 0", color: "#666", background: "#fff" },
+  resultsGrid: { display: "grid", gap: 12, overflow: "hidden", width: "100%", boxSizing: "border-box" },
+  footer: { borderTop: "1px solid #eee", padding: "16px 0", color: "#666", background: "#fff", display: "none" },
 };
