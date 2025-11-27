@@ -31,6 +31,10 @@ const PaymentPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [message, setMessage] = useState("");
+  const [rewards, setRewards] = useState(null);
+  const [rewardsLoading, setRewardsLoading] = useState(false);
+  const [useRewards, setUseRewards] = useState(false);
+  const [rewardsToUse, setRewardsToUse] = useState(0);
 
   const [errors, setErrors] = useState({
     email: "",
@@ -63,13 +67,39 @@ const PaymentPage = () => {
       });
   }, [userId]);
 
+  // Fetch rewards for logged-in user
+  useEffect(() => {
+    if (!userId) return;
+
+    setRewardsLoading(true);
+    axios.get(`http://localhost:9000/user/points/${userId}`)
+      .then(res => {
+        if (res.data) {
+          setRewards(res.data);
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch rewards:", err);
+      })
+      .finally(() => setRewardsLoading(false));
+  }, [userId]);
+
   if (!flight) {
     return <div style={{ padding: 20 }}>Loading flight information...</div>;
   }
 
   const basePrice = flight.price;
   const tax = basePrice * passengerCount * 0.03;
-  const total = ((basePrice * passengerCount) + tax).toFixed(2);
+  let subtotal = (basePrice * passengerCount) + tax;
+  
+  // Calculate discount from rewards (100 points = $1, so divide by 100)
+  let rewardsDiscount = 0;
+  if (useRewards && rewardsToUse > 0) {
+    rewardsDiscount = (rewardsToUse / 10000) * 100; // 10,000 points = $100 off
+    rewardsDiscount = Math.min(rewardsDiscount, subtotal); // Can't discount more than total
+  }
+  
+  const total = (subtotal - rewardsDiscount).toFixed(2);
 
   const handlePassengerCountChange = (e) => {
     const count = parseInt(e.target.value);
@@ -191,6 +221,33 @@ const PaymentPage = () => {
       console.log("✅ Booking saved:", response.data.booking);
 
       setIsConfirmed(true);
+
+      // Deduct points on server if user used rewards and update localStorage so other pages see the changed balance
+      if (user && user._id && useRewards && rewardsToUse > 0) {
+        try {
+          const deductRes = await axios.post('http://localhost:9000/user/deductPoints', {
+            userId: user._id,
+            pointsToDeduct: rewardsToUse
+          });
+
+          if (deductRes.data && deductRes.data.user) {
+            // update localStorage with fresh user object (preserve unchanged fields from stored user)
+            const updatedUser = { ...user, ...deductRes.data.user };
+            localStorage.setItem('liftoffUser', JSON.stringify(updatedUser));
+            // update rewards state used in this page
+            setRewards(prev => ({ ...prev, totalPoints: updatedUser.totalPoints }));
+            // notify other parts of the app (e.g., dashboard) that user data changed
+            try {
+              window.dispatchEvent(new CustomEvent('liftoffUserUpdated', { detail: updatedUser }));
+            } catch (e) {
+              // older browsers fallback: set an ephemeral localStorage flag
+              localStorage.setItem('liftoffUserUpdatedAt', Date.now());
+            }
+          }
+        } catch (err) {
+          console.error('Failed to deduct points:', err);
+        }
+      }
 
       // After booking succeeds, if user opted to save payment and they don't already have a saved card,
       // persist card details (excluding CVV) to the database and update local state.
@@ -555,6 +612,98 @@ const PaymentPage = () => {
                 )}
               </div>
 
+              {userId && (
+                <div style={styles.sectionCard}>
+                  <h3 style={styles.sectionTitle}>Your Rewards</h3>
+
+                  {rewardsLoading ? (
+                    <p style={{ textAlign: "center", color: "#666" }}>Loading rewards...</p>
+                  ) : rewards ? (
+                    <div>
+                      <div style={styles.rewardsHeader}>
+                        <div style={styles.pointsDisplay}>
+                          <p style={{ fontSize: 14, color: "#666", margin: "0 0 5px 0" }}>Total Points</p>
+                          <p style={{ fontSize: 32, fontWeight: 700, color: "#2f6feb", margin: 0 }}>
+                            {rewards.totalPoints}
+                          </p>
+                        </div>
+                        <p style={{ color: "#666", fontSize: 13, marginLeft: 20 }}>
+                          Earn 10 points per dollar spent on flights
+                        </p>
+                      </div>
+
+                      {rewards.totalPoints >= 10000 && (
+                        <div style={{ marginTop: 20 }}>
+                          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <input
+                              type="checkbox"
+                              checked={useRewards}
+                              onChange={(e) => {
+                                setUseRewards(e.target.checked);
+                                if (!e.target.checked) {
+                                  setRewardsToUse(0);
+                                }
+                              }}
+                            />
+                            <span style={{ fontSize: 14, fontWeight: 500 }}>Use my rewards points</span>
+                          </label>
+
+                          {useRewards && (
+                            <div style={{ marginTop: 12, marginLeft: 28, padding: "12px 14px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e1e5eb" }}>
+                              <label style={{ display: "block", marginBottom: 8, fontSize: 13, fontWeight: 600 }}>
+                                Select Points to Redeem (in multiples of 10,000)
+                              </label>
+                              <input
+                                type="number"
+                                min="10000"
+                                step="10000"
+                                max={rewards.totalPoints}
+                                value={rewardsToUse}
+                                onChange={(e) => {
+                                  let value = parseInt(e.target.value) || 0;
+                                  // Ensure it's a multiple of 10,000
+                                  if (value > 0) {
+                                    value = Math.round(value / 10000) * 10000;
+                                  }
+                                  // Ensure it doesn't exceed available points
+                                  value = Math.min(value, rewards.totalPoints);
+                                  setRewardsToUse(value);
+                                }}
+                                style={{
+                                  width: "100%",
+                                  padding: "8px 10px",
+                                  borderRadius: 6,
+                                  border: "1px solid #cfd7df",
+                                  fontSize: 14,
+                                  boxSizing: "border-box"
+                                }}
+                              />
+                              <p style={{ fontSize: 12, color: "#666", marginTop: 8, marginBottom: 0 }}>
+                                Discount: ${((rewardsToUse / 10000) * 100).toFixed(2)} off
+                              </p>
+                            </div>
+                          )}
+
+                          <p style={{ fontSize: 12, color: "#666", marginLeft: 28, marginTop: 8 }}>
+                            Every 10,000 points = $100 off
+                          </p>
+                        </div>
+                      )}
+
+                      {rewards.totalPoints < 10000 && (
+                        <p style={{ fontSize: 13, color: "#999", marginTop: 15, fontStyle: "italic" }}>
+                          You need at least 10,000 points to redeem rewards. You currently have {rewards.totalPoints} points.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p style={{ color: "#666", textAlign: "center" }}>
+                      No rewards yet. Start booking flights to earn points!
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div style={styles.sectionCard}>
                 <h3 style={styles.sectionTitle}>Summary</h3>
 
@@ -573,6 +722,12 @@ const PaymentPage = () => {
                   <br />
                   Tax: ${tax}
                   <br />
+                  {useRewards && rewards && rewards.totalPoints >= 10000 && (
+                    <>
+                      Rewards Discount: -${rewardsDiscount}
+                      <br />
+                    </>
+                  )}
                   <strong>Total: ${total}</strong>
                 </p>
 
@@ -790,6 +945,22 @@ const styles = {
     // Center text
     textAlign: "center",
     border: "1px solid #e7ebf0",
+  },
+
+  // REWARDS HEADER (displays total points)
+  rewardsHeader: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 30,
+    padding: "15px",
+    background: "#f0f7ff",
+    borderRadius: 8,
+    border: "1px solid #cfe2ff",
+  },
+
+  // POINTS DISPLAY (shows total points number)
+  pointsDisplay: {
+    flex: 1,
   },
 };
 

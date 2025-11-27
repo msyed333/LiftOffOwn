@@ -368,25 +368,9 @@ function ProfileInfo() {
                 </p>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <button
-                    onClick={() => setIsEditingCard(true)}
-                    style={{
-                      flex: 1,
-                      padding: "8px 12px",
-                      background: "#2f6feb",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      fontSize: "14px"
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
                     onClick={handleDeleteCard}
                     style={{
-                      flex: 1,
+                      width: "100%",
                       padding: "8px 12px",
                       background: "#dc3545",
                       color: "white",
@@ -635,16 +619,47 @@ function Points() {
   useEffect(() => {
     if (!user) return;
 
-    axios.get(`http://localhost:9000/user/points/${user._id}`)
-      .then(res => {
-        setPoints(res.data.totalPoints);
-        setHistory(res.data.history);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Error loading points:", err);
-        setLoading(false);
-      });
+    // Fetch latest user (to get current totalPoints) and also fetch points history
+    const fetch = async () => {
+      try {
+        const userRes = await axios.get(`http://localhost:9000/user/${user._id}`);
+        if (userRes.data && userRes.data.user) {
+          setPoints(userRes.data.user.totalPoints || 0);
+        }
+      } catch (err) {
+        console.error('Failed to fetch user:', err);
+      }
+
+      try {
+        const ptsRes = await axios.get(`http://localhost:9000/user/points/${user._id}`);
+        if (ptsRes.data) {
+          setHistory(ptsRes.data.history || []);
+        }
+      } catch (err) {
+        console.error('Error loading points history:', err);
+      }
+
+      setLoading(false);
+    };
+
+    fetch();
+    // listen for global user updates
+    const onUserUpdated = (e) => {
+      // re-run fetch when payment page updates localStorage
+      fetch();
+    };
+    window.addEventListener('liftoffUserUpdated', onUserUpdated);
+
+    // fallback: listen for localStorage changes by other tabs
+    const onStorage = (ev) => {
+      if (ev.key === 'liftoffUserUpdatedAt') fetch();
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener('liftoffUserUpdated', onUserUpdated);
+      window.removeEventListener('storage', onStorage);
+    };
   }, [user]);
 
   if (!user) return <p>Please log in to view your points.</p>;
@@ -685,8 +700,13 @@ function Points() {
                 <p className="points-note">{item.note}</p>
               </div>
 
-              <span className="points-change earned">
+              <span className={`points-change ${item.change && item.change.startsWith('-') ? 'redeemed' : 'earned'}`}>
                 {item.change}
+                {item.value !== undefined && (
+                  <div style={{ fontSize: 12, color: '#666' }}>
+                    {Number(item.value) >= 0 ? '+' : ''}${Number(item.value).toFixed(2)}
+                  </div>
+                )}
               </span>
             </div>
           ))}

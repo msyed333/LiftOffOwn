@@ -152,6 +152,24 @@ app.post("/bookFlight", async (req, res) => {
     const booking = new Booking(bookingData);
     await booking.save();
 
+        // If booked by a logged-in user, add earned points to their totalPoints and record history
+        if (userId) {
+          try {
+            const paid = parseFloat(price) || 0;
+            const earned = Math.round(paid * 10); // 10 points per dollar
+
+            await User.findByIdAndUpdate(
+              userId,
+              { 
+                $inc: { totalPoints: earned },
+                $push: { pointsHistory: { change: `+${earned}`, points: earned, value: (earned/100), note: 'Earned from flight', flight: `${from} → ${to}` } }
+              }
+            );
+          } catch (err) {
+            console.error('Failed to add earned points to user:', err);
+          }
+        }
+
     res.status(201).json({
       message: "Booking successful ✅",
       booking
@@ -167,34 +185,23 @@ app.get("/user/points/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const bookings = await Booking.find({ userId });
+    const user = await User.findById(userId).select('totalPoints pointsHistory');
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
-    let totalPoints = 0;
-    let history = [];
+    const history = (user.pointsHistory || []).map(h => ({
+      flight: h.flight || '',
+      date: h.date ? h.date.toISOString().split('T')[0] : '',
+      change: h.change || '',
+      note: h.note || ''
+    }));
 
-    bookings.forEach(booking => {
-      const earned = Math.round(booking.price * 10);  // ✅ 10 points per dollar
-
-      totalPoints += earned;
-
-      history.push({
-        flight: `${booking.from} → ${booking.to}`,
-        date: booking.date,
-        change: `+${earned}`,
-        note: "Earned from flight"
-      });
-    });
-
-    res.json({
-      totalPoints,
-      history
-    });
-
+    res.json({ totalPoints: user.totalPoints || 0, history });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch points" });
   }
 });
+
 
 app.post("/saveCard", async (req, res) => {
   try {
@@ -233,6 +240,81 @@ app.delete("/deleteCard/:userId", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to delete card" });
+  }
+});
+
+// Get user by id (returns current totalPoints)
+app.get('/user/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user });
+  } catch (err) {
+    console.error('Get user error:', err);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+// Deduct points from user
+app.post('/user/deductPoints', async (req, res) => {
+  try {
+    const { userId, pointsToDeduct } = req.body;
+    if (!userId || !pointsToDeduct) return res.status(400).json({ error: 'Missing parameters' });
+
+    const pts = Math.abs(pointsToDeduct);
+    const updated = await User.findByIdAndUpdate(
+      userId,
+      { 
+        $inc: { totalPoints: -pts },
+        $push: { pointsHistory: { change: `-${pts}`, points: -pts, value: -(pts/100), note: 'Redeemed for purchase' } }
+      },
+      { new: true }
+    ).select('-password');
+
+    if (!updated) return res.status(404).json({ error: 'User not found' });
+
+    res.json({ success: true, user: updated });
+  } catch (err) {
+    console.error('Deduct points error:', err);
+    res.status(500).json({ error: 'Failed to deduct points' });
+  }
+});
+
+// Set a user's totalPoints to a specific value (admin / maintenance)
+app.post('/user/setPoints', async (req, res) => {
+  try {
+    const { userId, totalPoints, clearHistory } = req.body;
+    if (!userId || totalPoints === undefined) return res.status(400).json({ error: 'Missing parameters' });
+
+    const update = { totalPoints: Number(totalPoints) };
+    if (clearHistory) update.pointsHistory = [];
+
+    const updated = await User.findByIdAndUpdate(userId, update, { new: true }).select('-password');
+    if (!updated) return res.status(404).json({ error: 'User not found' });
+
+    res.json({ success: true, user: updated });
+  } catch (err) {
+    console.error('Set points error:', err);
+    res.status(500).json({ error: 'Failed to set points' });
+  }
+});
+
+// Reset points to zero (convenience)
+app.post('/user/resetPoints', async (req, res) => {
+  try {
+    const { userId, clearHistory } = req.body;
+    if (!userId) return res.status(400).json({ error: 'Missing userId' });
+
+    const update = { totalPoints: 0 };
+    if (clearHistory) update.pointsHistory = [];
+
+    const updated = await User.findByIdAndUpdate(userId, update, { new: true }).select('-password');
+    if (!updated) return res.status(404).json({ error: 'User not found' });
+
+    res.json({ success: true, user: updated });
+  } catch (err) {
+    console.error('Reset points error:', err);
+    res.status(500).json({ error: 'Failed to reset points' });
   }
 });
 
