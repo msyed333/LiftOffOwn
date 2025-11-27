@@ -7,6 +7,8 @@ const Flight = require("./FlightSchema");
 const Booking = require("./BookingSchema");
 const PaymentMethod = require("./PaymentMethod");
 const Card = require("./CardSchema");
+const SupportTicket = require("./SupportTicketSchema");
+
 
 
 
@@ -181,6 +183,42 @@ app.post("/bookFlight", async (req, res) => {
   }
 });
 
+
+// Find booking by confirmation code
+app.get('/booking/byCode/:code', async (req, res) => {
+  try {
+    const code = req.params.code.trim().toUpperCase();
+    const booking = await Booking.findOne({ confirmationCode: code });
+    if (!booking) return res.status(404).json({ error: 'Booking not found' });
+    res.json({ booking });
+  } catch (err) {
+    console.error('Booking lookup error:', err);
+    res.status(500).json({ error: 'Failed to lookup booking' });
+  }
+});
+
+// Mark booking as checked in
+app.post('/booking/checkin', async (req, res) => {
+  try {
+    const { confirmationCode } = req.body;
+    if (!confirmationCode) return res.status(400).json({ error: 'Missing confirmationCode' });
+
+    const code = confirmationCode.trim().toUpperCase();
+    const booking = await Booking.findOneAndUpdate(
+      { confirmationCode: code },
+      { $set: { checkedIn: true } },
+      { new: true }
+    );
+
+    if (!booking) return res.status(404).json({ error: 'Booking not found' });
+
+    res.json({ success: true, booking });
+  } catch (err) {
+    console.error('Checkin error:', err);
+    res.status(500).json({ error: 'Failed to check in' });
+  }
+});
+
 app.get("/user/points/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
@@ -315,6 +353,31 @@ app.post('/user/resetPoints', async (req, res) => {
   } catch (err) {
     console.error('Reset points error:', err);
     res.status(500).json({ error: 'Failed to reset points' });
+  }
+});
+
+
+app.post("/submitTicket", async (req, res) => {
+  try {
+    const { name, email, message, userId } = req.body;
+
+    const newTicket = new SupportTicket({
+      name,
+      email,
+      message,
+      userId: userId || null,
+    });
+
+    await newTicket.save();
+
+    res.status(201).json({
+      message: "Ticket submitted successfully ✅",
+      ticket: newTicket
+    });
+
+  } catch (error) {
+    console.error("Ticket Error:", error);
+    res.status(500).json({ error: "Failed to submit ticket" });
   }
 });
 

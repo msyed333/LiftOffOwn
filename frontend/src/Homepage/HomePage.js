@@ -112,7 +112,7 @@ export default function Homepage() {
           <nav style={styles.nav}>
             <Link style={styles.link} to="/seller-dashboard">Seller</Link>
             <Link style={styles.link} to="/support">Customer-Support</Link> 
-            <Link style={styles.link} to="/Airlines"> Airlines</Link>
+            <Link style={styles.link} to="/updates"> Updates</Link>
           </nav>
 
           {/* <div style={styles.authButtons}>

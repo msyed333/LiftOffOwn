@@ -32,6 +32,8 @@ const bookingSchema = new mongoose.Schema({
   seatingPreference: String,
   price: Number,
 
+  checkedIn: { type: Boolean, default: false },
+
   confirmationCode: {
     type: String,
     unique: true

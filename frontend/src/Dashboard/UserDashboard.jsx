@@ -719,7 +719,6 @@ function Points() {
 
 function CheckIn() {
   const [code, setCode] = useState("");
-  const [last, setLast] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
@@ -755,19 +754,32 @@ function CheckIn() {
     e.preventDefault();
     setError("");
 
-    const hit = reservations.find(
-      r =>
-        r.confirmation.toUpperCase() === code.trim().toUpperCase() &&
-        r.last.toLowerCase() === last.trim().toLowerCase()
-    );
-
-    if (!hit) {
+    const q = code.trim().toUpperCase();
+    if (!q) {
+      setError('Enter a confirmation code');
       setResult(null);
-      setError("No reservation found. Check your code and last name.");
       return;
     }
 
-    setResult({ ...hit });
+    axios.get(`http://localhost:9000/booking/byCode/${q}`)
+      .then(res => {
+        if (res.data && res.data.booking) {
+          setResult(res.data.booking);
+          setError('');
+        } else {
+          setResult(null);
+          setError('No reservation found. Check your confirmation code.');
+        }
+      })
+      .catch(err => {
+        setResult(null);
+        if (err.response && err.response.status === 404) {
+          setError('No reservation found. Check your confirmation code.');
+        } else {
+          console.error('Lookup error:', err);
+          setError('Lookup failed. Try again later.');
+        }
+      });
   }
 
   function canCheckIn(depIso) {
@@ -783,10 +795,22 @@ function CheckIn() {
   }
 
   function handleCheckIn() {
-    setResult(prev => ({ ...prev, checkedIn: true }));
+    // Call server to mark checkedIn
+    if (!result || !result.confirmationCode) return;
+
+    axios.post('http://localhost:9000/booking/checkin', { confirmationCode: result.confirmationCode })
+      .then(res => {
+        if (res.data && res.data.success) {
+          setResult(res.data.booking);
+        }
+      })
+      .catch(err => {
+        console.error('Checkin failed:', err);
+        setError('Failed to check in. Try again later.');
+      });
   }
 
-  const eligible = result ? canCheckIn(result.departIso) : false;
+  // No eligibility window: any found booking should show check-in success and QR
 
   return (
     <div className="checkin-card">
@@ -805,17 +829,19 @@ function CheckIn() {
           />
         </label>
 
-        <label>
-          Last Name
-          <input
-            placeholder="e.g., Irfan"
-            value={last}
-            onChange={e => setLast(e.target.value)}
-          />
-        </label>
+  {/* Last name removed — only confirmation code is required for lookup */}
 
-        <button type="submit">Find my trip</button>
-        
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="submit">Find my trip</button>
+          <button
+            type="button"
+            onClick={() => { setCode(''); setResult(null); setError(''); }}
+            style={{ background: '#6c757d', color: 'white', border: 'none', padding: '8px 12px', borderRadius: 6 }}
+          >
+            Clear
+          </button>
+        </div>
+
         {error && <div className="error-msg">{error}</div>}
       </form>
 
@@ -827,22 +853,27 @@ function CheckIn() {
           
           <p>Departure: {formatDT(result.departIso)}</p>
 
+          {/* Immediately treat found booking as checked in and show QR */}
           <p>
-            Status:{" "}
-            {result.checkedIn ? (
-              <strong className="status-success">Checked in ✅</strong>
-            ) : eligible ? (
-              <strong className="status-open">Check-in available</strong>
-            ) : (
-              <span className="status-closed">Opens 8h before departure</span>
-            )}
+            <strong className="status-success">Successfully checked in ✅</strong>
           </p>
 
-          {!result.checkedIn && eligible && (
-            <button className="checkin-now" onClick={handleCheckIn}>
-              Check in now
-            </button>
-          )}
+          <div style={{ marginTop: 16, textAlign: 'center' }}>
+            <p className="status-success">Show this QR code at the gate</p>
+            <div style={{ display: 'inline-block', padding: 12, background: 'white', border: '1px solid #eee' }}>
+              {/* Use a public QR code generator for a quick scannable image */}
+              {result && (
+                <img
+                  alt="boarding-qr"
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(`${result.confirmationCode}|${result.name||''}|${result.from||''}-${result.to||''}|${result.date||''}`)}`}
+                  style={{ display: 'block', margin: '0 auto' }}
+                />
+              )}
+
+              <div style={{ fontSize: 12, color: '#666', marginTop: 8 }}>{result.name} — {result.from} → {result.to}</div>
+              <div style={{ fontSize: 12, color: '#666' }}>Conf: {result.confirmationCode}</div>
+            </div>
+          </div>
         </div>
       )}
     </div>
