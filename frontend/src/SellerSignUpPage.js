@@ -27,7 +27,15 @@ const SellerSignUpPage = () => {
   };
 
   return (
-    <div className="login-container">
+    <div className="seller-signup-wrapper">
+      <div className="seller-message-frame">
+        <h1 className="seller-welcome-title">Welcome to LiftOff</h1>
+        <p className="seller-message-text">
+          Are you interested in becoming a seller with us? Please complete the signup process using the link below. Our team will review your submission and respond within 2–3 business days.
+        </p>
+      </div>
+      
+      <div className="login-container">
       <div className="login-card" style={{ paddingBottom: "40px" }}>
         {/* ======= HEADER ======= */}
         <div className="login-header">
@@ -295,6 +303,7 @@ const SellerSignUpPage = () => {
             ← Back to Home Page
           </button>
         </form>
+      </div>
       </div>
     </div>
   );
