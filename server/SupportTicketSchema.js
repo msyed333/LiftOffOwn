@@ -5,6 +5,7 @@ const SupportTicketSchema = new mongoose.Schema({
   email: String,
   message: String,
   userId: { type: String, default: null }, // optional if logged in
+  completed: { type: Boolean, default: false },
   createdAt: {
     type: Date,
     default: Date.now

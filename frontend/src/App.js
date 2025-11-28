@@ -13,6 +13,7 @@ import SellerAddFlightPage from "./SellerPages/SellerAddFlightPage.jsx";
 import SellerManageDelaysPage from "./SellerPages/SellerManageDelays.jsx";
 import SellerProfilePage from "./SellerPages/SellerProfilePage.jsx"
 import ConfirmationPage from "./Updates/ConfirmationPage";
+import Admin from "./Admin/Admin";
 
 
 
@@ -34,6 +35,7 @@ function App() {
         <Route path="/seller-manage-delays" element={<SellerManageDelaysPage />} />
         <Route path="/seller-profile" element={<SellerProfilePage />} />
   <Route path="/updates" element={<ConfirmationPage />} />
+  <Route path="/admin" element={<Admin />} />
       </Routes>
     </Router>
   );

@@ -381,3 +381,120 @@ app.post("/submitTicket", async (req, res) => {
   }
 });
 
+// --- Basic admin endpoints (no auth) ---
+// List all users (exclude password)
+app.get('/admin/users', async (req, res) => {
+  try {
+    const { q } = req.query;
+    let filter = {};
+    if (q && q.trim()) {
+      const r = new RegExp(q.trim(), 'i');
+      filter = { $or: [ { username: r }, { firstName: r }, { lastName: r }, { _id: r } ] };
+    }
+    const users = await User.find(filter).select('-password').sort({ username: 1 });
+    res.json({ users });
+  } catch (err) {
+    console.error('Admin list users error:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// List all bookings
+app.get('/admin/bookings', async (req, res) => {
+  try {
+    // Populate user basic info and flight basic info for admin display
+    const { q } = req.query;
+    const r = q && q.trim() ? new RegExp(q.trim(), 'i') : null;
+    const baseFilter = r ? { $or: [ { confirmationCode: r }, { name: r }, { email: r }, { from: r }, { to: r } ] } : {};
+
+    const bookings = await Booking.find(baseFilter)
+      .populate({ path: 'userId', select: 'username firstName lastName totalPoints' })
+      .populate({ path: 'flightId', select: 'airline flightNo from to depart arrive date price' })
+      .sort({ bookingDate: -1 });
+
+    res.json({ bookings });
+  } catch (err) {
+    console.error('Admin list bookings error:', err);
+    res.status(500).json({ error: 'Failed to fetch bookings' });
+  }
+});
+
+// List all tickets
+app.get('/admin/tickets', async (req, res) => {
+  try {
+  const tickets = await SupportTicket.find().sort({ createdAt: -1 });
+  res.json({ tickets });
+  } catch (err) {
+    console.error('Admin list tickets error:', err);
+    res.status(500).json({ error: 'Failed to fetch tickets' });
+  }
+});
+
+// Toggle ticket completion
+app.post('/admin/ticket/:id/toggleComplete', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const ticket = await SupportTicket.findById(id);
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+    ticket.completed = !ticket.completed;
+    await ticket.save();
+    res.json({ success: true, ticket });
+  } catch (err) {
+    console.error('Toggle ticket completion error:', err);
+    res.status(500).json({ error: 'Failed to toggle ticket' });
+  }
+});
+
+// List all sellers (users with isSeller flag)
+app.get('/admin/sellers', async (req, res) => {
+  try {
+    const { q } = req.query;
+    let filter = { isSeller: true };
+    if (q && q.trim()) {
+      const r = new RegExp(q.trim(), 'i');
+      filter = { isSeller: true, $or: [ { username: r }, { firstName: r }, { lastName: r }, { _id: r } ] };
+    }
+    const sellers = await User.find(filter).select('-password').sort({ username: 1 });
+    res.json({ sellers });
+  } catch (err) {
+    console.error('Admin list sellers error:', err);
+    res.status(500).json({ error: 'Failed to fetch sellers' });
+  }
+});
+
+// Delete a seller by id
+app.delete('/admin/seller/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    await User.findByIdAndDelete(id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Admin delete seller error:', err);
+    res.status(500).json({ error: 'Failed to delete seller' });
+  }
+});
+
+// Delete a user by id
+app.delete('/admin/user/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    await User.findByIdAndDelete(id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Admin delete user error:', err);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// Delete a booking by id
+app.delete('/admin/booking/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    await Booking.findByIdAndDelete(id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Admin delete booking error:', err);
+    res.status(500).json({ error: 'Failed to delete booking' });
+  }
+});
+
