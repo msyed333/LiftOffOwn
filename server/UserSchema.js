@@ -5,6 +5,14 @@ const UserSchema = new mongoose.Schema({
     lastName: String,
     username: String,
     password: String,
+
+
+
+    isSeller: { 
+        type: Boolean, 
+        default: false 
+    },
+    
     // store user's reward balance
     totalPoints: { type: Number, default: 0 }
 });

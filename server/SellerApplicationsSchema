@@ -1,0 +1,22 @@
+const mongoose = require("mongoose");
+
+const SellerApplicationSchema = new mongoose.Schema({
+  fullName: String,
+  orgName: String,
+  businessNumber: String,
+  businessEmail: String,
+  password: String,
+
+  // ⭐ REQUIRED ⭐
+  status: {
+    type: String,
+    default: "pending"
+  },
+
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+module.exports = mongoose.model("SellerApplication", SellerApplicationSchema);

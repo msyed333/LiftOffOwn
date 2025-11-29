@@ -15,27 +15,106 @@ const SellerSignUpPage = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const togglePassword = () => setShowPassword(!showPassword);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // const handleSubmit = (e) => {
+  //   e.preventDefault();
+  //   console.log("Seller Sign Up Data:", formData);
+  //   alert("Seller account created successfully!");
+  // };
+
   const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Seller Sign Up Data:", formData);
-    alert("Seller account created successfully!");
-  };
+  e.preventDefault();
+
+  fetch("http://localhost:9000/seller/apply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(formData)
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      // show confirmation modal instead of alert
+      setShowConfirm(true);
+    })
+    .catch(() => alert("Error submitting application"));
+};
+
 
   return (
-    <div className="login-container">
-      <div className="login-card" style={{ paddingBottom: "40px" }}>
-        {/* ======= HEADER ======= */}
-        <div className="login-header">
-          <h2 className="logo-text">LiftOff</h2>
-        </div>
+    <div className="seller-signup-layout">
+      <div className="seller-info-card">
+        <h2>Interested in Selling With Us?</h2>
+        <p className="lead">
+          At Liftoff, we’re more than just a booking platform — we’re a growing
+          community built around accessibility, efficiency, and the excitement
+          of travel. Our goal is to connect people with experiences that
+          inspire them, and to support those who have a passion for helping
+          others reach their destinations.
+        </p>
 
-        {/* ======= FORM ======= */}
-        <form className="login-form" onSubmit={handleSubmit} noValidate>
+        <h3>Why join Liftoff?</h3>
+        <p>
+          As part of this mission, we partner with sellers who share the same
+          dedication to quality, trust, and exceptional service. Whether
+          you're an established provider or just starting out, Liftoff gives
+          you the tools to showcase your offerings, manage bookings, and grow
+          your business in a supportive and intuitive environment.
+        </p>
+
+        <h3>What we provide</h3>
+        <p>
+          When you join us as a seller, you become part of a platform designed
+          to help you succeed. We focus on creating smooth workflows, clear
+          communication, and reliable support so you can spend less time
+          managing logistics and more time doing what you love.
+        </p>
+
+        <h3>Get started</h3>
+        <p>
+          If you believe in our mission and want to contribute to a platform
+          that values innovation, transparency, and community, we invite you
+          to sign up as a seller today. Simply complete the seller
+          registration form on this page to get started — and take the first
+          step toward offering your services through Liftoff.
+        </p>
+      </div>
+
+      <div className="login-container">
+        <div className="login-card" style={{ paddingBottom: "40px" }}>
+          {/* ======= HEADER ======= */}
+          <div className="login-header">
+            <h2 className="logo-text">LiftOff</h2>
+          </div>
+
+          {/* ======= FORM ======= */}
+          {showConfirm ? (
+            <div className="confirm-card inline-confirm">
+              <h3>Application submitted</h3>
+              <p>
+                Your seller application has been submitted and is pending
+                approval! Please give the system 1 business day to process your
+                status. Click the Confirm button below to confirm that you have
+                read this and be directed to the homepage.
+              </p>
+
+              <div className="confirm-actions">
+                <button
+                  className="neu-button signup-btn"
+                  onClick={() => {
+                    setShowConfirm(false);
+                    navigate("/");
+                  }}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          ) : (
+            <form className="login-form" onSubmit={handleSubmit} noValidate>
           {/* Full Name */}
           <div className="form-group" style={{ marginBottom: "14px" }}>
             <label
@@ -282,20 +361,18 @@ const SellerSignUpPage = () => {
           {/* Back to Home */}
           <button
             type="button"
-            className="neu-button"
+            className="neu-button login-btn"
             onClick={() => navigate("/")}
-            style={{
-              background: "#e5e9ef",
-              color: "#3d4468",
-              fontWeight: "600",
-              marginTop: "10px",
-              padding: "12px 24px",
-            }}
+            style={{ marginTop: "10px" }}
           >
             ← Back to Home Page
           </button>
         </form>
+          )}
+        </div>
       </div>
+
+      
     </div>
   );
 };

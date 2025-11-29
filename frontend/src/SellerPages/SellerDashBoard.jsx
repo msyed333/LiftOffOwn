@@ -52,6 +52,11 @@ export default function SellerFlightsPage() {
 
   const handleEdit = (id) => navigate(`/editflight/${id}`);
   const handleView = (id) => navigate(`/flightdetails/${id}`);
+  const handleLogout = () => {
+    // clear session and go to homepage (or login)
+    try { localStorage.removeItem('liftoffUser'); } catch(e){}
+    navigate('/');
+  };
 
   return (
     <div style={styles.page}>
@@ -65,14 +70,13 @@ export default function SellerFlightsPage() {
           <div style={styles.brand}>LiftOff Seller</div>
 
           <nav style={styles.nav}>
-            <Link style={styles.link} to="/">Homepage</Link>
             <Link style={styles.link} to="/seller-manage-delays">Manage-Flights-Status</Link>
             <Link style={styles.link} to="/support">Customer-Support</Link>
           </nav>
 
           <div style={styles.authButtons}>
             <Link to="/seller-profile" className="nav-login-btn">Profile</Link>
-            <Link to="/logout" className="nav-signup-btn">Logout</Link>
+            <button type="button" onClick={handleLogout} className="nav-signup-btn">Logout</button>
           </div>
 
         </div>

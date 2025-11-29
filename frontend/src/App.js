@@ -34,8 +34,8 @@ function App() {
         <Route path="/seller-add-flight" element={<SellerAddFlightPage />} />
         <Route path="/seller-manage-delays" element={<SellerManageDelaysPage />} />
         <Route path="/seller-profile" element={<SellerProfilePage />} />
-  <Route path="/updates" element={<ConfirmationPage />} />
-  <Route path="/admin" element={<Admin />} />
+        <Route path="/updates" element={<ConfirmationPage />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
     </Router>
   );

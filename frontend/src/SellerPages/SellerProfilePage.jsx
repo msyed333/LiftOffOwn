@@ -4,22 +4,35 @@ import { useEffect, useState } from "react";
 export default function SellerProfilePage() {
   const navigate = useNavigate();
   const [seller, setSeller] = useState(null);
-
-  // ⭐ Mock seller data
+  // Fetch seller application for logged-in user
   useEffect(() => {
-    const mockSeller = {
-      name: "John Anderson",
-      airline: "Delta Airlines",
-      employeeID: "DAL-EMP-1023",
-      email: "john.anderson@deltaair.com",
-      phone: "(555) 482-1294",
-      role: "Flight Operations Manager",
-      joined: "March 2022",
-      location: "Atlanta, GA",
-    };
-
-    setSeller(mockSeller);
-  }, []);
+    async function load() {
+      const raw = localStorage.getItem('liftoffUser');
+      if (!raw) return navigate('/Login');
+      const session = JSON.parse(raw);
+      const email = session.username || session.email || session.user;
+      if (!email) return navigate('/');
+      try {
+        const res = await fetch(`http://localhost:9000/seller/application/byEmail?email=${encodeURIComponent(email)}`);
+        const json = await res.json();
+        if (json && json.application) {
+          setSeller(json.application);
+          return;
+        }
+        // fallback to user document
+        const userId = session._id || session.userId || session.id;
+        if (!userId) return setSeller({ error: 'No profile found' });
+        const ures = await fetch(`http://localhost:9000/user/${userId}`);
+        if (!ures.ok) return setSeller({ error: 'No profile found' });
+        const ujson = await ures.json();
+        setSeller(ujson.user || ujson);
+      } catch (err) {
+        console.error(err);
+        setSeller({ error: 'Failed to load profile' });
+      }
+    }
+    load();
+  }, [navigate]);
 
   if (!seller) return <div style={{ padding: 30 }}>Loading…</div>;
 
@@ -33,14 +46,12 @@ export default function SellerProfilePage() {
           <div style={styles.sectionCard}>
 
             <div style={styles.infoGrid}>
-              <p><strong>Full Name:</strong> {seller.name}</p>
-              <p><strong>Airline:</strong> {seller.airline}</p>
-              <p><strong>Employee ID:</strong> {seller.employeeID}</p>
-              <p><strong>Email:</strong> {seller.email}</p>
-              <p><strong>Phone:</strong> {seller.phone}</p>
-              <p><strong>Role:</strong> {seller.role}</p>
-              <p><strong>Office Location:</strong> {seller.location}</p>
-              <p><strong>Joined:</strong> {seller.joined}</p>
+              <p><strong>Full Name:</strong> {seller.fullName || seller.name || `${seller.firstName||''} ${seller.lastName||''}`.trim() || '—'}</p>
+              <p><strong>Organization:</strong> {seller.orgName || seller.businessName || seller.organizationName || '—'}</p>
+              <p><strong>Business #:</strong> {seller.businessNumber || '—'}</p>
+              <p><strong>Email:</strong> {seller.businessEmail || seller.username || '—'}</p>
+              <p><strong>Role:</strong> {'Seller'}</p>
+              <p><strong>Joined:</strong> {seller.createdAt ? new Date(seller.createdAt).toLocaleDateString() : '—'}</p>
             </div>
 
             <button

@@ -40,42 +40,81 @@ const Login = () => {
 
     event.preventDefault();
 
+
     axios
-      .get("http://localhost:9000/getUser", { params: { username, password } })
-      .then((res) => {
-        if (res.data) {
-          // Hide inline message
-          setMessage("");
-          setMessageColor("");
+  .get("http://localhost:9000/getUser", { params: { username, password } })
+  .then((res) => {
+    if (res.data) {
+      const user = res.data;
 
-          // Show success popup
-          setShowSuccess(true);
+      // Save user session
+      localStorage.setItem("liftoffUser", JSON.stringify(user));
 
-          // Redirect after delay
-          setTimeout(() => {
-            setShowSuccess(false);
-            navigate("/"); // ⭐ change to your homepage path
-          }, 1500);
+      // Show success popup
+      setShowSuccess(true);
 
-              // store user data for the session
-          localStorage.setItem("liftoffUser", JSON.stringify(res.data));
+      setTimeout(() => {
+        setShowSuccess(false);
 
-          setShowSuccess(true);
-
-          setTimeout(() => {
-              setShowSuccess(false);
-              navigate("/"); 
-          }, 1500);
-
+        // Redirect sellers to seller dashboard first
+        if (user.isSeller) {
+          navigate('/seller-dashboard');
+        } else if (user.username === "admin@gmail.com") {
+          // Admin goes to admin console
+          navigate("/admin");
         } else {
-          setMessage("Wrong Credentials. Try Again");
-          setMessageColor("red");
+          // Default user landing
+          navigate("/");
         }
-      })
-      .catch(() => {
-        setMessage("Login error. Try again.");
-        setMessageColor("red");
-      });
+      }, 1500);
+
+    } else {
+      setMessage("Wrong Credentials. Try Again");
+      setMessageColor("red");
+    }
+  })
+  .catch(() => {
+    setMessage("Login error. Try again.");
+    setMessageColor("red");
+  });
+
+
+    // axios
+    //   .get("http://localhost:9000/getUser", { params: { username, password } })
+    //   .then((res) => {
+    //     if (res.data) {
+    //       // Hide inline message
+    //       setMessage("");
+    //       setMessageColor("");
+
+    //       // Show success popup
+    //       setShowSuccess(true);
+
+    //       // Redirect after delay
+    //       setTimeout(() => {
+    //         setShowSuccess(false);
+    //         navigate("/"); // ⭐ change to your homepage path
+    //       }, 1500);
+
+    //           // store user data for the session
+    //       localStorage.setItem("liftoffUser", JSON.stringify(res.data));
+
+    //       setShowSuccess(true);
+
+    //       setTimeout(() => {
+    //           setShowSuccess(false);
+    //           navigate("/"); 
+    //       }, 1500);
+
+    //     } else {
+    //       setMessage("Wrong Credentials. Try Again");
+    //       setMessageColor("red");
+    //     }
+    //   })
+    //   .catch(() => {
+    //     setMessage("Login error. Try again.");
+    //     setMessageColor("red");
+    //   });
   }
 
   
@@ -212,7 +251,7 @@ const Login = () => {
         <div style={styles.overlay}>
           <div style={styles.successCard}>
             <h3>Login Successful!</h3>
-            <p>You will be redirected to the homepage...</p>
+            <p>You are being redirected...</p>
           </div>
         </div>
       )}

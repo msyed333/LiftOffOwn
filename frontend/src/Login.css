@@ -709,3 +709,111 @@ button:active {
   transform: scale(0.97);
   box-shadow: 0 2px 6px rgba(47, 111, 235, 0.25);
 }
+
+/* Seller Sign-up two-column layout */
+.seller-signup-layout {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 28px;
+    align-items: start;
+    width: 100%;
+    max-width: 980px;
+    margin: 20px auto;
+    padding: 0 16px;
+}
+
+.seller-info-card {
+    background: linear-gradient(180deg, #f6fbff 0%, #ffffff 100%);
+    border: 1px solid rgba(47,111,235,0.08);
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 8px 12px 40px rgba(31,86,216,0.06);
+    color: #21325f;
+}
+
+.seller-info-card h2 {
+    font-size: 28px;
+    margin-bottom: 12px;
+    color: #183056;
+}
+
+.seller-info-card p {
+    color: #3d4468;
+    line-height: 1.5;
+    font-size: 15px;
+}
+
+.seller-info-card .lead {
+    font-size: 16px;
+    color: #2f4e9b;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.seller-info-card h3 {
+    color: #1f56d8; /* brand blue */
+    margin-top: 18px;
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.seller-info-card h2 {
+    position: relative;
+}
+
+.seller-info-card h2::after {
+    content: '';
+    display: block;
+    width: 56px;
+    height: 4px;
+    background: linear-gradient(90deg, rgba(47,111,235,1), rgba(79,155,255,0.8));
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+/* Confirmation modal */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent; /* show card on same screen without dark overlay */
+    z-index: 1200;
+}
+
+.confirm-card {
+    background: white;
+    padding: 28px;
+    border-radius: 12px;
+    max-width: 560px;
+    width: 92%;
+    box-shadow: 0 10px 40px rgba(17, 24, 39, 0.3);
+    color: #172031;
+}
+
+.confirm-card h3 {
+    margin-top: 0;
+    color: #173d9a;
+}
+
+.confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+    .seller-signup-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .seller-info-card {
+        order: 2;
+        margin-top: 12px;
+    }
+
+    .login-container {
+        order: 1;
+    }
+}

@@ -8,7 +8,7 @@ const Booking = require("./BookingSchema");
 const PaymentMethod = require("./PaymentMethod");
 const Card = require("./CardSchema");
 const SupportTicket = require("./SupportTicketSchema");
-
+const SellerApplication = require("./SellerApplicationsSchema");
 
 
 
@@ -52,19 +52,54 @@ app.post('/createUser', async (req, res) => { //server side end point
 })
 
 
+// app.get('/getUser', async (req, res) => {
+//     // console.log(`SERVER: GET USER REQ BODY: ${req.query}`)
+//     console.log("SERVER: GET USER REQ QUERY:", req.query);
+//     const username = req.query.username
+//     const password = req.query.password
+//     try {
+//         const user = await User.findOne({ username, password })
+//         res.send(user)
+//     }
+//     catch (error) {
+//         res.status(500).send(error)
+//     }
+// })
+
 app.get('/getUser', async (req, res) => {
-    // console.log(`SERVER: GET USER REQ BODY: ${req.query}`)
-    console.log("SERVER: GET USER REQ QUERY:", req.query);
-    const username = req.query.username
-    const password = req.query.password
-    try {
-        const user = await User.findOne({ username, password })
-        res.send(user)
+  console.log("SERVER: GET USER REQ QUERY:", req.query);
+
+  const username = req.query.username;
+  const password = req.query.password;
+
+  try {
+    const user = await User.findOne({ username, password });
+
+    if (!user) {
+      // return null (200) so frontend can show "Wrong Credentials" message
+      return res.json(null);
     }
-    catch (error) {
-        res.status(500).send(error)
-    }
-})
+
+    // Return user data including isSeller so frontend can redirect sellers
+    res.json({
+      _id: user._id,
+      name: user.name || (user.firstName ? `${user.firstName} ${user.lastName||''}` : ''),
+      username: user.username,
+      email: user.username,
+      role: user.role,
+      isSeller: !!user.isSeller,
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      totalPoints: user.totalPoints || 0
+    });
+
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+
+
 
 app.get("/flights", async (req, res) => {
   try {
@@ -382,6 +417,77 @@ app.post("/submitTicket", async (req, res) => {
 });
 
 // --- Basic admin endpoints (no auth) ---
+// --- Admin: Get pending seller applications ---
+app.get("/admin/sellerApplications", async (req, res) => {
+  try {
+    const pending = await SellerApplication.find({ status: "pending" });
+    res.json({ pending });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch seller applications" });
+  }
+});
+
+// --- Admin: Get approved seller applications (from applications collection) ---
+app.get('/admin/approvedSellerApplications', async (req, res) => {
+  try {
+    const approved = await SellerApplication.find({ status: 'approved' }).sort({ createdAt: -1 });
+    res.json({ approved });
+  } catch (err) {
+    console.error('Failed to fetch approved seller applications', err);
+    res.status(500).json({ error: 'Failed to fetch approved seller applications' });
+  }
+});
+
+// Public: Get seller application by email (used by seller profile)
+app.get('/seller/application/byEmail', async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ error: 'Missing email' });
+    // match businessEmail field
+    const application = await SellerApplication.findOne({ businessEmail: email });
+    if (!application) return res.json(null);
+    res.json({ application });
+  } catch (err) {
+    console.error('Failed to fetch seller application by email', err);
+    res.status(500).json({ error: 'Failed to fetch application' });
+  }
+});
+
+// --- Admin: Approve seller application ---
+app.post("/admin/seller/approve", async (req, res) => {
+  try {
+    const { applicationId } = req.body;
+
+    // Mark application approved
+    const application = await SellerApplication.findByIdAndUpdate(
+      applicationId,
+      { status: "approved" },
+      { new: true }
+    );
+
+    // Create user account for seller
+    const newSeller = new User({
+      name: application.fullName,
+      username: application.businessEmail,   // seller logs in with this
+      password: application.password,       // password they chose
+      isSeller: true
+    });
+
+    await newSeller.save();
+
+    res.json({
+      success: true,
+      message: "Seller approved and user account created.",
+      newSeller,
+      application
+    });
+
+  } catch (err) {
+    console.error("Seller approval error:", err);
+    res.status(500).json({ error: "Failed to approve seller" });
+  }
+});
+
 // List all users (exclude password)
 app.get('/admin/users', async (req, res) => {
   try {
@@ -474,6 +580,32 @@ app.delete('/admin/seller/:id', async (req, res) => {
   }
 });
 
+// Delete a seller application (by application _id). If the application was approved,
+// also attempt to delete the linked User account (matched by businessEmail).
+app.delete('/admin/sellerApplication/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const application = await SellerApplication.findById(id);
+    if (!application) return res.status(404).json({ error: 'Application not found' });
+
+    // If this application had been approved, try to remove the corresponding user account
+    if (application.status === 'approved' && application.businessEmail) {
+      try {
+        await User.findOneAndDelete({ username: application.businessEmail });
+      } catch (err) {
+        console.error('Failed to delete linked user for application', id, err);
+        // continue to delete application even if user removal fails
+      }
+    }
+
+    await SellerApplication.findByIdAndDelete(id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Admin delete seller application error:', err);
+    res.status(500).json({ error: 'Failed to delete seller application' });
+  }
+});
+
 // Delete a user by id
 app.delete('/admin/user/:id', async (req, res) => {
   try {
@@ -498,3 +630,19 @@ app.delete('/admin/booking/:id', async (req, res) => {
   }
 });
 
+
+app.post("/seller/apply", async (req, res) => {
+  try {
+    const application = new SellerApplication(req.body);
+    await application.save();
+
+    res.json({
+      success: true,
+      message: "Seller application submitted successfully!",
+      application
+    });
+  } catch (err) {
+    console.error("Seller Application Error:", err);
+    res.status(500).json({ error: "Failed to submit application" });
+  }
+});
