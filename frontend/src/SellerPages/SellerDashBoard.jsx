@@ -278,10 +278,13 @@ const styles = {
 
   actionCol: {
     display: "flex",
+    alignItems: "center",
     justifyContent: "flex-end",
     gap: 10,
     width: "160px",
     paddingRight: "10px",
+    padding: "12px 10px",
+    verticalAlign: "middle",
   },
 
   /* BUTTONS */
