@@ -45,44 +45,15 @@ const SellerSignUpPage = () => {
 
 
   return (
-    <div className="seller-signup-layout">
-      <div className="seller-info-card">
-        <h2>Interested in Selling With Us?</h2>
-        <p className="lead">
-          At Liftoff, we’re more than just a booking platform — we’re a growing
-          community built around accessibility, efficiency, and the excitement
-          of travel. Our goal is to connect people with experiences that
-          inspire them, and to support those who have a passion for helping
-          others reach their destinations.
-        </p>
-
-        <h3>Why join Liftoff?</h3>
-        <p>
-          As part of this mission, we partner with sellers who share the same
-          dedication to quality, trust, and exceptional service. Whether
-          you're an established provider or just starting out, Liftoff gives
-          you the tools to showcase your offerings, manage bookings, and grow
-          your business in a supportive and intuitive environment.
-        </p>
-
-        <h3>What we provide</h3>
-        <p>
-          When you join us as a seller, you become part of a platform designed
-          to help you succeed. We focus on creating smooth workflows, clear
-          communication, and reliable support so you can spend less time
-          managing logistics and more time doing what you love.
-        </p>
-
-        <h3>Get started</h3>
-        <p>
-          If you believe in our mission and want to contribute to a platform
-          that values innovation, transparency, and community, we invite you
-          to sign up as a seller today. Simply complete the seller
-          registration form on this page to get started — and take the first
-          step toward offering your services through Liftoff.
+    <div className="seller-signup-wrapper">
+      <div className="seller-message-frame">
+        <h1 className="seller-welcome-title">Welcome to LiftOff</h1>
+        <p className="seller-message-text">
+          Are you interested in becoming a seller with us? Please complete the signup process using the link below. Our team will review your submission and respond within 2–3 business days.
         </p>
       </div>
-
+      
+      
       <div className="login-container">
         <div className="login-card" style={{ paddingBottom: "40px" }}>
           {/* ======= HEADER ======= */}
@@ -371,8 +342,6 @@ const SellerSignUpPage = () => {
           )}
         </div>
       </div>
-
-      
     </div>
   );
 };
