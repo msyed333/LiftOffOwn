@@ -291,17 +291,19 @@ body {
     box-shadow: 
         4px 4px 10px #bec3cf,
         -4px -4px 10px #ffffff;
-    transition: all 0.3s ease;
+    transition: color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .neu-toggle:hover {
     color: #6c7293;
+    transform: translateY(-50%);
 }
 
 .neu-toggle:active {
     box-shadow: 
         inset 2px 2px 5px #bec3cf,
         inset -2px -2px 5px #ffffff;
+    transform: translateY(-50%);
 }
 
 .neu-toggle svg { /*for the toggle password off and on icon size*/
@@ -309,16 +311,20 @@ body {
     height: 18px;
 }
 
-.eye-closed {
+.eye-open {
     display: none;
+}
+
+.eye-closed {
+    display: block;
 }
 
 .neu-toggle.show-password .eye-open {
-    display: none;
+    display: block;
 }
 
 .neu-toggle.show-password .eye-closed {
-    display: block;
+    display: none;
 }
 
 /* Form Options */
