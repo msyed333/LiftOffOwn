@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function AddFlight() {
   const [flight, setFlight] = useState({
@@ -58,6 +59,8 @@ export default function AddFlight() {
   });
 
   const [errors, setErrors] = useState({});
+  const [showSuccess, setShowSuccess] = useState(false);
+  const navigate = useNavigate();
 
   // State for stop details (airline name and code for each stop)
   const [stopDetails, setStopDetails] = useState({});
@@ -185,8 +188,27 @@ export default function AddFlight() {
 
   const handleSubmit = () => {
     if (validateForm()) {
-      console.log("Submitting Flight:", flight);
-      alert("Flight Added Successfully!");
+      (async () => {
+        try {
+          const raw = localStorage.getItem('liftoffUser');
+          const session = raw ? JSON.parse(raw) : {};
+          const payload = { ...flight, sellerId: session._id, sellerUsername: session.username };
+          const res = await fetch('http://localhost:9000/flights', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+          });
+          const json = await res.json();
+          if (res.ok && json.flight) {
+            // show center confirmation then redirect
+            setShowSuccess(true);
+            setTimeout(() => {
+              navigate('/seller-dashboard');
+            }, 1400);
+          } else {
+            alert('Failed to add flight');
+            console.error(json);
+          }
+        } catch (err) { console.error(err); alert('Error adding flight'); }
+      })();
     }
   };
 
@@ -257,6 +279,16 @@ export default function AddFlight() {
                   style={{...styles.input, borderColor: errors.depart ? "#e25454" : "#ccc"}}
                 />
                 {errors.depart && <span style={styles.errorText}>{errors.depart}</span>}
+                
+                <label style={styles.label}>Departure Date</label>
+                <input
+                  name="date"
+                  type="date"
+                  value={flight.date || ''}
+                  onChange={handleChange}
+                  style={{...styles.input, borderColor: errors.date ? "#e25454" : "#ccc"}}
+                />
+                {errors.date && <span style={styles.errorText}>{errors.date}</span>}
               </div>
 
               {/* Duration / Stops */}
@@ -863,6 +895,14 @@ export default function AddFlight() {
 
         </div>
       </main>
+      {showSuccess && (
+        <div style={styles.overlay}>
+          <div style={styles.successCard}>
+            <h3 style={{ margin: 0 }}>Flight Successfully Added</h3>
+            <p style={{ marginTop: 8 }}>You are being redirected…</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -996,5 +1036,27 @@ const styles = {
     fontSize: 16,
     fontWeight: 700,
     cursor: "pointer",
+  },
+  /* centered overlay for success */
+  overlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    background: "rgba(0,0,0,0.35)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 999,
+  },
+
+  successCard: {
+    width: "420px",
+    background: "white",
+    borderRadius: 12,
+    padding: 28,
+    textAlign: "center",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
   },
 };

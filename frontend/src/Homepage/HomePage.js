@@ -261,15 +261,15 @@ export default function Homepage() {
                     <div style={{ fontSize: 12, color: "#666" }}>{cityFromCode(f.to)}</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={styles.price}>${f.price.toFixed(2)}</div>
-                    <div style={{ fontSize: 12, color: "#666" }}>★ {f.rating.toFixed(1)}</div>
+                    <div style={styles.price}>{f.price != null ? `$${Number(f.price).toFixed(2)}` : '—'}</div>
+                    <div style={{ fontSize: 12, color: "#666" }}>★ {f.rating != null ? Number(f.rating).toFixed(1) : '—'}</div>
                   </div>
                 </div>
 
                 <div style={{ marginTop: 8, display: "flex", gap: 12, alignItems: "center" }}>
-                  {f.amenities.wifi && <span style={styles.amenity}>WiFi</span>}
-                  {f.amenities.meals && <span style={styles.amenity}>Meals</span>}
-                  {f.amenities.entertainment && <span style={styles.amenity}>Entertainment</span>}
+                  {f.amenities?.wifi && <span style={styles.amenity}>WiFi</span>}
+                  {f.amenities?.meals && <span style={styles.amenity}>Meals</span>}
+                  {f.amenities?.entertainment && <span style={styles.amenity}>Entertainment</span>}
                   <button 
                     style={styles.selectBtn}
                     onClick={() => navigate(`/flight/${f._id}`, { state: { flight: f } })}

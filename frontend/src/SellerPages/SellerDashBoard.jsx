@@ -10,28 +10,20 @@ export default function SellerFlightsPage() {
 
   // Mock flights — Replace later with API request
   useEffect(() => {
-    setFlights([
-      {
-        id: "FL001",
-        airline: "Delta Airlines",
-        flightNo: "DL245",
-        from: "JFK",
-        to: "LAX",
-        depart: "08:30 AM",
-        arrive: "11:15 AM",
-        price: 299,
-      },
-      {
-        id: "FL002",
-        airline: "American Airlines",
-        flightNo: "AA110",
-        from: "ORD",
-        to: "MIA",
-        depart: "09:45 AM",
-        arrive: "01:00 PM",
-        price: 320,
-      },
-    ]);
+    async function load() {
+      try {
+        const raw = localStorage.getItem('liftoffUser');
+        if (!raw) return setFlights([]);
+        const session = JSON.parse(raw);
+        const username = session.username;
+        const id = session._id;
+        const q = username ? `?sellerUsername=${encodeURIComponent(username)}` : `?sellerId=${encodeURIComponent(id)}`;
+        const res = await fetch(`http://localhost:9000/seller/flights${q}`);
+        const json = await res.json();
+        setFlights((json && json.flights) || []);
+      } catch (err) { console.error('Failed to load seller flights', err); setFlights([]); }
+    }
+    load();
   }, []);
 
   const openDeleteModal = (id) => {
@@ -39,19 +31,49 @@ export default function SellerFlightsPage() {
     setShowConfirm(true);
   };
 
-  const confirmDelete = () => {
-    setFlights(flights.filter((f) => f.id !== flightToDelete));
-    setShowConfirm(false);
-    setFlightToDelete(null);
+  const [showView, setShowView] = useState(false);
+  const [viewFlight, setViewFlight] = useState(null);
+
+  const openViewModal = (flight) => {
+    setViewFlight(flight);
+    setShowView(true);
+  };
+
+  const closeViewModal = () => {
+    setShowView(false);
+    setViewFlight(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!flightToDelete) return;
+    try {
+      const res = await fetch(`http://localhost:9000/flights/${encodeURIComponent(flightToDelete)}`, { method: 'DELETE' });
+      if (res.ok) {
+        setFlights(prev => prev.filter((f) => (f._id || f.id) !== flightToDelete));
+      } else {
+        const json = await res.json().catch(() => ({}));
+        console.error('Failed to delete flight', json);
+        alert('Failed to delete flight');
+      }
+    } catch (err) {
+      console.error('Delete request failed', err);
+      alert('Error deleting flight');
+    } finally {
+      setShowConfirm(false);
+      setFlightToDelete(null);
+    }
   };
 
   const cancelDelete = () => {
     setShowConfirm(false);
     setFlightToDelete(null);
   };
-
-  const handleEdit = (id) => navigate(`/editflight/${id}`);
-  const handleView = (id) => navigate(`/flightdetails/${id}`);
+  const handleView = (id) => {
+    // find flight in local state and open modal
+    const f = flights.find(x => (x._id || x.id) === id) || null;
+    if (f) openViewModal(f);
+    else navigate(`/flightdetails/${id}`); // fallback
+  };
   const handleLogout = () => {
     // clear session and go to homepage (or login)
     try { localStorage.removeItem('liftoffUser'); } catch(e){}
@@ -104,25 +126,24 @@ export default function SellerFlightsPage() {
                   <th style={styles.th}>Departure</th>
                   <th style={styles.th}>Arrival</th>
                   <th style={styles.th}>Price ($)</th>
-                  <th style={styles.th}>Actions</th>
+                    <th style={styles.th}>Departure</th>
                 </tr>
               </thead>
 
               <tbody>
                 {flights.map((f) => (
-                  <tr key={f.id} style={styles.tr}>
-                    <td style={styles.td}>{f.id}</td>
+                  <tr key={f._id || f.id} style={styles.tr}>
+                    <td style={styles.td}>{f._id || f.id}</td>
                     <td style={styles.td}>{f.airline}</td>
                     <td style={styles.td}>{f.flightNo}</td>
                     <td style={styles.td}>{f.from} → {f.to}</td>
                     <td style={styles.td}>{f.depart}</td>
                     <td style={styles.td}>{f.arrive}</td>
                     <td style={styles.td}>${f.price}</td>
-
+                    <td style={styles.td}>{f.date ? new Date(f.date).toLocaleDateString() : '—'}</td>
                     <td style={styles.actionCol}>
-                      <button style={styles.viewBtn} onClick={() => handleView(f.id)}>View</button>
-                      <button style={styles.editBtn} onClick={() => handleEdit(f.id)}>Edit</button>
-                      <button style={styles.deleteBtn} onClick={() => openDeleteModal(f.id)}>Delete</button>
+                      <button style={styles.viewBtn} onClick={() => handleView(f._id || f.id)}>View</button>
+                      <button style={styles.deleteBtn} onClick={() => openDeleteModal(f._id || f.id)}>Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -151,13 +172,103 @@ export default function SellerFlightsPage() {
       {showConfirm && (
         <div style={styles.overlay}>
           <div style={styles.confirmCard}>
-            <h3 style={{ marginTop: 0 }}>Delete Flight?</h3>
-            <p>This action cannot be undone.</p>
+            <h3 style={{ marginTop: 0 }}>Are you sure you want to delete?</h3>
+            <p>This action is permanent and can't be undone.</p>
 
-            <div style={styles.confirmButtons}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 18 }}>
               <button style={styles.cancelBtn} onClick={cancelDelete}>Cancel</button>
-              <button style={styles.confirmDeleteBtn} onClick={confirmDelete}>Delete</button>
+              <button style={{ ...styles.confirmDeleteBtn, minWidth: 100 }} onClick={confirmDelete}>Confirm</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW FLIGHT DETAILS MODAL */}
+      {showView && viewFlight && (
+        <div style={styles.overlay}>
+          <div style={styles.viewCard}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0 }}>{viewFlight.airline} — {viewFlight.flightNo}</h3>
+              <button onClick={closeViewModal} style={{ ...styles.cancelBtn }}>Close</button>
+            </div>
+
+            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div><strong>Route:</strong> {viewFlight.from} → {viewFlight.to}</div>
+              <div><strong>Date:</strong> {viewFlight.date ? new Date(viewFlight.date).toLocaleDateString() : '—'}</div>
+              <div><strong>Price:</strong> ${viewFlight.price}</div>
+
+              <div><strong>Depart:</strong> {viewFlight.depart}</div>
+              <div><strong>Arrive:</strong> {viewFlight.arrive}</div>
+              <div><strong>Duration:</strong> {viewFlight.durationMin ? `${viewFlight.durationMin} min` : '—'}</div>
+
+              <div><strong>Rating:</strong> {viewFlight.rating || '—'}</div>
+              <div><strong>Stops:</strong> {viewFlight.stops != null ? viewFlight.stops : '—'}</div>
+              <div><strong>Unique:</strong> {viewFlight.uniqueKey || '—'}</div>
+            </div>
+
+            <hr style={{ margin: '12px 0' }} />
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <h4 style={{ margin: '6px 0' }}>Departure Airport</h4>
+                <div><strong>{viewFlight.fromFull || '—'}</strong> ({viewFlight.from})</div>
+                <div>Terminal: {viewFlight.terminalFrom || '—'}</div>
+                <div>Gate: {viewFlight.gateFrom || '—'}</div>
+              </div>
+
+              <div>
+                <h4 style={{ margin: '6px 0' }}>Arrival Airport</h4>
+                <div><strong>{viewFlight.toFull || '—'}</strong> ({viewFlight.to})</div>
+                <div>Terminal: {viewFlight.terminalTo || '—'}</div>
+                <div>Gate: {viewFlight.gateTo || '—'}</div>
+                <div>Baggage: {viewFlight.baggageClaim || '—'}</div>
+              </div>
+            </div>
+
+            <hr style={{ margin: '12px 0' }} />
+
+            <div>
+              <h4 style={{ margin: '6px 0' }}>Amenities</h4>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {/* amenities object */}
+                {['wifi','meals','entertainment','chargingPorts'].map(k => (
+                  Boolean(viewFlight.amenities && viewFlight.amenities[k]) ? (
+                    <span key={k} style={styles.amenity}>{k === 'chargingPorts' ? 'Charging Ports' : k.charAt(0).toUpperCase() + k.slice(1)}</span>
+                  ) : null
+                ))}
+
+                {/* other boolean fields */}
+                {Boolean(viewFlight.hasUSBOutlets) && <span style={styles.amenity}>USB Outlets</span>}
+                {Boolean(viewFlight.hasPowerOutlets) && <span style={styles.amenity}>Power Outlets</span>}
+                {Boolean(viewFlight.hasLiveTV) && <span style={styles.amenity}>Live TV</span>}
+              </div>
+
+              {/* show explicit yes/no for non-badge fields */}
+              <div style={{ marginTop: 8 }}>
+                <div>USB Outlets: {viewFlight.hasUSBOutlets ? 'Yes' : 'No'}</div>
+                <div>Power Outlets: {viewFlight.hasPowerOutlets ? 'Yes' : 'No'}</div>
+                <div>Live TV: {viewFlight.hasLiveTV ? 'Yes' : 'No'}</div>
+              </div>
+            </div>
+
+            <hr style={{ margin: '12px 0' }} />
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <h4 style={{ margin: '6px 0' }}>Baggage</h4>
+                <div>Carry-on: {viewFlight.carryOnBagsAllowed || '—'}</div>
+                <div>Checked: {viewFlight.checkedBagsAllowed || '—'}</div>
+                <div>Extra fee: ${viewFlight.extraBagFeeUSD || '—'}</div>
+              </div>
+
+              <div>
+                <h4 style={{ margin: '6px 0' }}>Aircraft</h4>
+                <div>Model: {viewFlight.aircraftModel || '—'}</div>
+                <div>Capacity: {viewFlight.aircraftCapacity || '—'}</div>
+                <div>Seat layout: {viewFlight.seatLayout || '—'}</div>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
@@ -302,16 +413,6 @@ const styles = {
     fontSize: 13,
   },
 
-  editBtn: {
-    padding: "6px 12px",
-    background: "#f7b84b",
-    color: "white",
-    border: "none",
-    borderRadius: 6,
-    cursor: "pointer",
-    fontSize: 13,
-  },
-
   deleteBtn: {
     padding: "6px 12px",
     background: "#e25454",
@@ -342,6 +443,15 @@ const styles = {
     borderRadius: "12px",
     padding: "25px",
     boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+  },
+
+  viewCard: {
+  width: "1100px",
+  maxWidth: "98vw",
+  background: "white",
+  borderRadius: "12px",
+  padding: "28px",
+  boxShadow: "0 12px 40px rgba(0,0,0,0.14)",
   },
 
   confirmButtons: {

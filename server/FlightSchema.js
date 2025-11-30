@@ -15,6 +15,9 @@ const amenitiesSchema = new mongoose.Schema({
 });
 
 const flightSchema = new mongoose.Schema({
+  // link to seller who added this flight
+  sellerId: String,
+  sellerUsername: String,
   airline: String,
   flightNo: String,
 

@@ -59,12 +59,12 @@ export default function FlightDetails() {
               </div>
             </div>
 
-            <div style={styles.amenitiesRow}>
-              {flight.amenities.wifi && <span style={styles.amenity}>WiFi</span>}
-              {flight.amenities.meals && <span style={styles.amenity}>Meals</span>}
-              {flight.amenities.entertainment && <span style={styles.amenity}>Entertainment</span>}
-              {flight.amenities.chargingPorts && <span style={styles.amenity}>Charging Ports</span>}
-            </div>
+    <div style={styles.amenitiesRow}>
+      {Boolean(flight.amenities && flight.amenities.wifi) && <span style={styles.amenity}>WiFi</span>}
+      {Boolean(flight.amenities && flight.amenities.meals) && <span style={styles.amenity}>Meals</span>}
+      {Boolean(flight.amenities && flight.amenities.entertainment) && <span style={styles.amenity}>Entertainment</span>}
+      {Boolean(flight.amenities && flight.amenities.chargingPorts) && <span style={styles.amenity}>Charging Ports</span>}
+    </div>
           </div>
 
           {/* -------------------------------- */}

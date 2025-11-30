@@ -104,7 +104,15 @@ app.get('/getUser', async (req, res) => {
 app.get("/flights", async (req, res) => {
   try {
     const flights = await Flight.find();
-    res.json(flights);
+    // ensure amenities object exists on every flight returned (protect old docs)
+    const safe = flights.map(f => {
+      const obj = f && f.toObject ? f.toObject() : f || {};
+      if (!obj.amenities || typeof obj.amenities !== 'object') {
+        obj.amenities = { wifi: false, meals: false, entertainment: false, chargingPorts: false };
+      }
+      return obj;
+    });
+    res.json(safe);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch flights" });
   }
@@ -113,7 +121,12 @@ app.get("/flights", async (req, res) => {
 app.get("/flights/:id", async (req, res) => {
   try {
     const flight = await Flight.findById(req.params.id);
-    res.json(flight);
+    if (!flight) return res.status(404).json({ error: "Flight not found" });
+    const obj = flight && flight.toObject ? flight.toObject() : flight || {};
+    if (!obj.amenities || typeof obj.amenities !== 'object') {
+      obj.amenities = { wifi: false, meals: false, entertainment: false, chargingPorts: false };
+    }
+    res.json(obj);
   } catch (err) {
     res.status(404).json({ error: "Flight not found" });
   }
@@ -644,5 +657,69 @@ app.post("/seller/apply", async (req, res) => {
   } catch (err) {
     console.error("Seller Application Error:", err);
     res.status(500).json({ error: "Failed to submit application" });
+  }
+});
+
+// Create a flight (seller adds a flight)
+app.post('/flights', async (req, res) => {
+  try {
+    const data = req.body;
+    // expect sellerId or sellerUsername in body (frontend should set from session)
+    if (!data.sellerId && !data.sellerUsername) return res.status(400).json({ error: 'Missing seller identity' });
+    // require uniqueKey — if not provided, synthesize
+    if (!data.uniqueKey) data.uniqueKey = `${data.airline||'X'}-${data.flightNo||Math.floor(Math.random()*10000)}-${Date.now()}`;
+    // Normalize amenities to ensure frontend can safely read fields
+    if (!data.amenities || typeof data.amenities !== 'object') {
+      data.amenities = { wifi: false, meals: false, entertainment: false, chargingPorts: false };
+    } else {
+      // Fill in missing amenity keys with defaults
+      data.amenities.wifi = !!data.amenities.wifi;
+      data.amenities.meals = !!data.amenities.meals;
+      data.amenities.entertainment = !!data.amenities.entertainment;
+      data.amenities.chargingPorts = !!data.amenities.chargingPorts;
+    }
+    const flight = new Flight(data);
+    await flight.save();
+    res.json({ success: true, flight });
+  } catch (err) {
+    console.error('Create flight error', err);
+    res.status(500).json({ error: 'Failed to create flight' });
+  }
+});
+
+// List flights for a seller
+app.get('/seller/flights', async (req, res) => {
+  try {
+    const { sellerUsername, sellerId } = req.query;
+    const filter = {};
+    if (sellerId) filter.sellerId = sellerId;
+    else if (sellerUsername) filter.sellerUsername = sellerUsername;
+    else return res.status(400).json({ error: 'Missing seller identifier' });
+    const flights = await Flight.find(filter).sort({ date: -1 });
+    const safe = flights.map(f => {
+      const obj = f && f.toObject ? f.toObject() : f || {};
+      if (!obj.amenities || typeof obj.amenities !== 'object') {
+        obj.amenities = { wifi: false, meals: false, entertainment: false, chargingPorts: false };
+      }
+      return obj;
+    });
+    res.json({ flights: safe });
+  } catch (err) {
+    console.error('Failed to list seller flights', err);
+    res.status(500).json({ error: 'Failed to fetch flights' });
+  }
+});
+
+// Delete a flight by id
+app.delete('/flights/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const flight = await Flight.findById(id);
+    if (!flight) return res.status(404).json({ error: 'Flight not found' });
+    await Flight.findByIdAndDelete(id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to delete flight', err);
+    res.status(500).json({ error: 'Failed to delete flight' });
   }
 });
